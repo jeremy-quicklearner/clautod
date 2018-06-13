@@ -36,9 +36,11 @@ git log --oneline $(git tag | tail -n 1)..@ | sed 's/^/  * /'   >> debian/change
 echo ""                                                         >> debian/changelog
 echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com> "date >> debian/changelog
 
-
-
-# TODO: Build the dh-virtualenv package
+# Build the Debian package
+echo "i
+Y
+y
+" > dh_make -p=clautod_$1 --email="jeremy.cpsc.questions@gmail.com" --copyright="mit"
 
 echo "Tagging current commit as v"$1
 
