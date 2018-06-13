@@ -21,7 +21,7 @@ lines = [line for line in lines if not line.startswith('#')]
 if not len(lines) == 1:
     print("clautod-version contents invalid")
     exit(1)
-if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+\-[0-9][0-9][0-9][0-9]$", lines[0]):
+if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+$", lines[0]):
     print("Invalid version <" + lines[0] + ">")
     exit(1)
 clautod_version = lines[0]

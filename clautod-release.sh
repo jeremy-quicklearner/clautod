@@ -13,7 +13,7 @@ if [ ! $1 ] ; then
     echo "Specify version string in X.X.X-XXXX format"
     exit 1
 fi
-if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\-[0-9][0-9][0-9][0-9]$ ]] ; then
+if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ; then
 	echo "Version string <"$1"> is invalid"
 	exit 1
 fi
