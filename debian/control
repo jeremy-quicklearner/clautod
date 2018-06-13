@@ -1,0 +1,13 @@
+Source: clautod
+Section: unknown
+Priority: optional
+Maintainer: Jeremy Lerner <jeremy.cpsc.questions@gmail.com>
+Build-Depends: debhelper (>= 9), dh-virtualenv (>=1.0-1)
+Standards-Version: 3.9.8
+Homepage: https://github.com/jeremy-quicklearner/clautod
+
+Package: clautod
+Architecture: all
+Depends: ${misc:Depends}
+Description: Consumables-Listing AUTOmation
+ A home inventory tracker
