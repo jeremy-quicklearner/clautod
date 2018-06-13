@@ -36,8 +36,11 @@ git log --oneline $(git tag | tail -n 1)..@ | sed 's/^/  * /'   >> debian/change
 echo ""                                                         >> debian/changelog
 echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com> "date >> debian/changelog
 
+# Let the user edit the changelist
+nano debian/changelog
+
 # Build the Debian package
-dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit"
+dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit" --createorig
 
 echo "Tagging current commit as v"$1
 
