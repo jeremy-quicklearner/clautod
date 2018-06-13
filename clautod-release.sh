@@ -1,3 +1,4 @@
+#!/bin/bash
 # Script for releasing clautod
 # Given a version number, this script creates a debian package
 # from the clautod source and tags the current git commit with
@@ -49,6 +50,7 @@ if [ git tag -a v$1 && git push --tags ] ; then
     echo "Successfully tagged commit"
 else
     echo "Failed to tag commit. This is not a legitimate release!"
+fi
 
 rm clautod-version.txt
 echo "Cleaned up"
