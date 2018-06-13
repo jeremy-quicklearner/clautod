@@ -14,8 +14,8 @@ if [ ! $1 ] ; then
     exit 1
 fi
 if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ; then
-	echo "Version string <"$1"> is invalid"
-	exit 1
+    echo "Version string <"$1"> is invalid"
+    exit 1
 fi
 
 # Populate clautod-version.txt for setup.py to read
@@ -45,6 +45,10 @@ dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyri
 echo "Tagging current commit as v"$1
 
 # Tag the current commit in git
-git tag -a v$1 &&
-git push --tags &&
-echo "Successfully tagged commit"
+if [ git tag -a v$1 && git push --tags ] ; then
+    echo "Successfully tagged commit"
+else
+    echo "Failed to tag commit. This is not a legitimate release!"
+
+rm clautod-version.txt
+echo "Cleaned up"
