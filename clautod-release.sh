@@ -31,7 +31,6 @@ echo "Packaging clautod v"$1
 echo "Tagging current commit as v"$1
 
 # Tag the current commit in git
-git tag -a v$1
-git push --tags
-
-echo "Successfully"
+git tag -a v$1 &&
+git push --tags &&
+echo "Successfully tagged commit"
