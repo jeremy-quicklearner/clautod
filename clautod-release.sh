@@ -40,7 +40,7 @@ echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com> "date >> debian/change
 echo "i
 Y
 y
-" | dh_make -p=clautod_$1 --email="jeremy.cpsc.questions@gmail.com" --copyright="mit"
+" | dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit"
 
 echo "Tagging current commit as v"$1
 
