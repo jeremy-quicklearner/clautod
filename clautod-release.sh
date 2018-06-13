@@ -31,11 +31,11 @@ cp README.md debian/README.debian
 cp README.md debian/README.source
 
 # Populate changelog based on git log
-echo "clautod ("$1") unstable; urgency=medium"                          > debian/changelog
-echo ""                                                                >> debian/changelog
-git log --oneline $(git tag | sort -V | tail -n 1)..@ | sed 's/^/  * /'          >> debian/changelog
-echo ""                                                                >> debian/changelog
-echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R) >> debian/changelog
+echo "clautod ("$1"-1) unstable; urgency=medium"                           > debian/changelog
+echo ""                                                                 >> debian/changelog
+git log --oneline $(git tag | sort -V | tail -n 1)..@ | sed 's/^/  * /' >> debian/changelog
+echo ""                                                                 >> debian/changelog
+echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R)  >> debian/changelog
 
 # Let the user edit the changelist
 nano debian/changelog
@@ -43,9 +43,8 @@ nano debian/changelog
 # Build the Debian package
 dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit" --createorig
 
-echo "Tagging current commit as v"$1
-
 # Tag the current commit in git
+echo "Tagging current commit as v"$1
 if git tag -a v$1 && git push --tags ; then
     echo "Successfully tagged commit"
 else
