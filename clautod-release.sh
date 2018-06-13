@@ -41,7 +41,8 @@ echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R)  >> debia
 nano debian/changelog
 
 # Build the Debian package
-dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit" --createorig
+# dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit" --createorig
+dpkg-buildpackage -us -uc
 
 # Tag the current commit in git
 echo "Tagging current commit as v"$1
