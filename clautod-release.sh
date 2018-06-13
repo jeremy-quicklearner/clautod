@@ -31,7 +31,7 @@ cp README.md debian/README.debian
 cp README.md debian/README.source
 
 # Populate changelog based on git log
-echo "clautod ("$1"-1) unstable; urgency=medium"                           > debian/changelog
+echo "clautod ("$1") unstable; urgency=medium"                           > debian/changelog
 echo ""                                                                 >> debian/changelog
 git log --oneline $(git tag | sort -V | tail -n 1)..@ | sed 's/^/  * /' >> debian/changelog
 echo ""                                                                 >> debian/changelog
