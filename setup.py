@@ -1,3 +1,6 @@
+# setup.py for clautod package
+# Relies on clautod-version.txt being populated, which should be done by the clautod-package.sh script
+
 import setuptools
 import re
 
