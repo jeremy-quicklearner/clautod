@@ -46,7 +46,7 @@ dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyri
 echo "Tagging current commit as v"$1
 
 # Tag the current commit in git
-if [ git tag -a v$1 && git push --tags ] ; then
+if [ git tag -a v$1 ] && [ git push --tags ] ; then
     echo "Successfully tagged commit"
 else
     echo "Failed to tag commit. This is not a legitimate release!"
