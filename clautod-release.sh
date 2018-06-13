@@ -11,7 +11,7 @@
 
 # Check parameters
 if [ ! $1 ] ; then
-    echo "Specify version string in X.X.X-XXXX format"
+    echo "Specify version string in X.X.X format"
     exit 1
 fi
 if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ; then
@@ -31,11 +31,11 @@ cp README.md debian/README.debian
 cp README.md debian/README.source
 
 # Populate changelog based on git log
-echo "clautod ("$1") unstable; urgency=medium"                         > debian/changelog
-echo ""                                                               >> debian/changelog
-git log --oneline $(git tag | tail -n 1)..@ | sed 's/^/  * /'         >> debian/changelog
-echo ""                                                               >> debian/changelog
-echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com> "$(date -R) >> debian/changelog
+echo "clautod ("$1") unstable; urgency=medium"                          > debian/changelog
+echo ""                                                                >> debian/changelog
+git log --oneline $(git tag | tail -n 1)..@ | sed 's/^/  * /'          >> debian/changelog
+echo ""                                                                >> debian/changelog
+echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R) >> debian/changelog
 
 # Let the user edit the changelist
 nano debian/changelog
