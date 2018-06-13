@@ -42,14 +42,14 @@ nano debian/changelog
 echo "[clautod-release] Package tree ready. Building package..."
 
 # Build the Debian package
-if [ ! dpkg-buildpackage -us -uc ] ; then
+if ! dpkg-buildpackage -us -uc ; then
 	echo "[clautod-release] Failed to build Debian package"
 	exit 1
 fi
 
 # Tag the current commit in git
 echo "[clautod-release] Package built. Tagging current commit as v"$1
-if [ ! git tag -a v$1 && git push --tags ] ; then
+if ! git tag -a v$1 && git push --tags ; then
     echo "[clautod-release] Failed to tag commit. This is not a legitimate release!"
     exit 1
 fi
@@ -62,12 +62,12 @@ sudo reprepro -b /var/www/repos/apt/debian includedeb stretch clautod_$1_all.deb
 echo "[clautod-release] Package published. Cleaning up..."
 
 # Cleanup
-rm clautod-version.txt
-rm ../clautod_$1_all.deb
-rm ../clautod_$1_amd64.buildinfo
-rm ../clautod_$1_amd64.changes
-rm ../clautod_$1.dsc
-rm ../clautod_$1.tar.xz
+#rm clautod-version.txt
+#rm ../clautod_$1_all.deb
+#rm ../clautod_$1_amd64.buildinfo
+#rm ../clautod_$1_amd64.changes
+#rm ../clautod_$1.dsc
+#rm ../clautod_$1.tar.xz
 
 echo "[clautod-release] Cleaned up."
 echo "[clautod-release] clautod v"$1" is published."
