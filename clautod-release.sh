@@ -1,13 +1,11 @@
 #!/bin/bash
 # Script for releasing clautod
 # Given a version number, this script creates a debian package
-# from the clautod source and tags the current git commit with
-# the same version number. This script is here because without
-# it, the version would need to be manually updated in three
-# places:
-# - setup.py (PIP's configuration)
-# - debian/control (DPKG's configuration)
-# - the git tag
+# from the clautod source, adds it to the local repo, and tags
+# the current git commit with the same version number. This is
+# the clautod release flow.
+# The script is almost certainly broken on all machines except
+# my home PC where it's intended to be run. Don't try it!
 
 # Check parameters
 if [ ! $1 ] ; then
@@ -41,8 +39,9 @@ echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R)  >> debia
 nano debian/changelog
 
 # Build the Debian package
-# dh_make -p=clautod_$1 --indep --email="jeremy.cpsc.questions@gmail.com" --copyright="mit" --createorig
-dpkg-buildpackage -us -uc
+if dpkg-buildpackage -us -uc ; then
+	echo "Failed to build Debian package"
+fi
 
 # Tag the current commit in git
 echo "Tagging current commit as v"$1
@@ -50,7 +49,18 @@ if git tag -a v$1 && git push --tags ; then
     echo "Successfully tagged commit"
 else
     echo "Failed to tag commit. This is not a legitimate release!"
+    exit 1
 fi
 
+# Add the new package to the local repo
+sudo reprepro -b /var/www/repos/apt/debian includedeb stretch clautod_$1_all.deb
+
+# Cleanup
 rm clautod-version.txt
+rm ../clautod_$1_all.deb
+rm ../clautod_$1_amd64.buildinfo
+rm ../clautod_$1_amd64.changes
+rm ../clautod_$1.dsc
+rm ../clautod_$1.tar.xz
+
 echo "Cleaned up"
