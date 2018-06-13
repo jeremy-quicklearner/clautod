@@ -25,7 +25,10 @@ echo $1 >> clautod-version.txt
 
 echo "Packaging clautod v"$1
 
-# Populate changelog
+# Populate README files in debian directory
+cp README.md debian/README.debian
+cp README.md debian/README.source
+
 # TODO: Build the dh-virtualenv package
 
 echo "Tagging current commit as v"$1
