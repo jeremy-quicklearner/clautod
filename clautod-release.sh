@@ -36,6 +36,7 @@ echo ""                                                            >> debian/cha
 git log --oneline $(git tag | tail -n 1)..@ | sed 's/^/  * /'      >> debian/changelog
 echo ""                                                            >> debian/changelog
 echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com> "$(date) >> debian/changelog
+echo ""                                                            >> debian/changelog
 
 # Let the user edit the changelist
 nano debian/changelog
