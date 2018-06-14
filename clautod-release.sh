@@ -57,17 +57,17 @@ fi
 echo "[clautod-release] Commit tagged. Publishing to local repo..."
 
 # Add the new package to the local repo
-sudo reprepro -b /var/www/repos/apt/debian includedeb stretch clautod_$1_all.deb
+sudo reprepro -b /var/www/repos/apt/debian includedeb stretch ../clautod_$1_all.deb
 
 echo "[clautod-release] Package published. Cleaning up..."
 
 # Cleanup
-#rm clautod-version.txt
-#rm ../clautod_$1_all.deb
-#rm ../clautod_$1_amd64.buildinfo
-#rm ../clautod_$1_amd64.changes
-#rm ../clautod_$1.dsc
-#rm ../clautod_$1.tar.xz
+rm clautod-version.txt
+rm ../clautod_$1_all.deb
+rm ../clautod_$1_amd64.buildinfo
+rm ../clautod_$1_amd64.changes
+rm ../clautod_$1.dsc
+rm ../clautod_$1.tar.xz
 
 echo "[clautod-release] Cleaned up."
 echo "[clautod-release] clautod v"$1" is published."
