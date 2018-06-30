@@ -1,0 +1,8 @@
+[Unit]
+Description=Consumables-Listing AUTOmation Daemon
+
+[Service]
+ExecStart=/home/jeremy/Projects/Clauto/clautod.sh # /usr/sbin/foo-daemon
+
+[Install]
+WantedBy=multi-user.target
