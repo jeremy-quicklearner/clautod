@@ -1,5 +1,5 @@
 Source: clautod
-Section: unknown
+Section: main
 Priority: optional
 Maintainer: Jeremy Lerner <jeremy.cpsc.questions@gmail.com>
 Build-Depends: debhelper (>= 9), python3, dh-virtualenv (>=1.0-1)
