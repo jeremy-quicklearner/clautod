@@ -1,10 +1,18 @@
 #!/bin/sh
 set -e
 
+echo "HELLO 0" > /home/jeremy/Projects/Clauto/HELLO.txt
+
 #DEBHELPER#
+
+echo "HELLO 1" >> /home/jeremy/Projects/Clauto/HELLO.txt
 
 # Start the clautod service now that it's installed
 systemctl start clautod
 
+echo "HELLO 2" >> /home/jeremy/Projects/Clauto/HELLO.txt
+
 # Also setup the clautod service to run on system startup
 systemctl enable clautod
+
+echo "HELLO 3" >> /home/jeremy/Projects/Clauto/HELLO.txt
