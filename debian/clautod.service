@@ -2,7 +2,7 @@
 Description=Consumables-Listing AUTOmation Daemon
 
 [Service]
-ExecStart=/home/jeremy/Projects/Clauto/clautod.sh # /usr/sbin/foo-daemon
+ExecStart=/home/jeremy/Projects/Clauto/clautod.sh
 
 [Install]
 WantedBy=multi-user.target

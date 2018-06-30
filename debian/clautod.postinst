@@ -3,4 +3,8 @@ set -e
 
 #DEBHELPER#
 
-#START THE SERVICE
+# Start the clautod service now that it's installed
+systemctl start clautod
+
+# Also setup the clautod service to run on system startup
+systemctl enable clautod
