@@ -3,5 +3,4 @@ set -e
 
 #DEBHELPER#
 
-# After uninstalling, don't run the clautod service anymore on system startup
-systemctl disable clautod
+# Blank for now

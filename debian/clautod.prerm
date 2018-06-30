@@ -5,3 +5,6 @@ set -e
 
 # Before uninstalling, stop the clautod service
 systemctl stop clautod
+
+# Also stop systemd from trying to run the clautod service on system startup
+systemctl disable clautod
