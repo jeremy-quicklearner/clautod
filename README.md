@@ -1,2 +1,4 @@
 # clautod
-Consumables-Listing AUTOmation Daemon
+## Consumables-Listing AUTOmation Daemon
+
+A home inventory tracker

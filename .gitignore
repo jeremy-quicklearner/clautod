@@ -1,0 +1,10 @@
+# Files created by a package release
+debian/README.debian
+debian/README.source
+debian/changelog
+debian/clautod.debhelper.log
+debian/clautod.postinst.debhelper
+debian/clautod.substvars
+debian/clautod
+debian/debhelper-build-stamp
+debian/files
