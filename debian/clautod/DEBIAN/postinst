@@ -88,5 +88,3 @@ $DH_VENV_DEBUG set +x
 # END dh-virtualenv postinst autoscript
 
 # End automatically added section
-
-##########################################Start clautod

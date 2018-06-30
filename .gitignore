@@ -5,10 +5,6 @@ debian/changelog
 debian/clautod.debhelper.log
 debian/clautod.postinst.debhelper
 debian/clautod.substvars
-debian/clautod/DEBIAN/control
-debian/clautod/DEBIAN/md5sums
-debian/clautod/DEBIAN/triggers
-debian/clautod/opt
-debian/clautod/usr
+debian/clautod
 debian/debhelper-build-stamp
 debian/files
