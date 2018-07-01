@@ -13,10 +13,13 @@
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
-
+#Use dh-virtualenv
 %:
 	dh $@ --with python-virtualenv
 
+#Don't install the clautod source in the virtualenv, since it's going in /usr/share (see debian/install)
+override_dh_virtualenv:
+	dh_virtualenv --skip-install
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )

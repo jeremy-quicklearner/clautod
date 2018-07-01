@@ -2,7 +2,7 @@
 Description=Consumables-Listing AUTOmation Daemon
 
 [Service]
-ExecStart=/opt/venvs/clautod/bin/python3 /opt/venvs/clautod/lib/python3.5/site-packages/clautod/clautod.py
+ExecStart=/opt/venvs/clautod/bin/python3 /usr/share/clauto/clautod/clautod.py
 
 [Install]
 WantedBy=multi-user.target
