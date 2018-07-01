@@ -7,7 +7,7 @@
 echo "[dbmig] HELLO I AM DBMIG"
 
 # If the database directory doesn't exist, create it
-#if [ ! -d /etc/clauto/clautod/db ]; then
+#if [ ! -d /etc/clauto/clautod ]; then
 #    echo "[dbmig] Database directory not found. Creating."
 #    mkdir -p /etc/clauto/clautod/db
 #fi

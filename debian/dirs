@@ -1,1 +1,5 @@
-/etc/clauto/clautod/db
+# Directory in /usr/share for the clautod code
+/usr/share/clauto/clautod
+
+# Directory in /etc for the DB, config files, etc.
+/etc/clauto/clautod
