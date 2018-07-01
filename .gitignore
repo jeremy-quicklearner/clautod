@@ -3,7 +3,10 @@ debian/README.debian
 debian/README.source
 debian/changelog
 debian/clautod.debhelper.log
+debian/clautod.preinst.debhelper
 debian/clautod.postinst.debhelper
+debian/clautod.prerm.debhelper
+debian/clautod.postrm.debhelper
 debian/clautod.substvars
 debian/clautod
 debian/debhelper-build-stamp
