@@ -22,7 +22,7 @@ DB_VERSION_GOAL=$(cat $DB_SCRIPTS_DIR/dbversion.txt)
 
 
 # Apply each script in order until the goal version is reached
-echo -n "[dbmig] Migrating Clauto database to version(s) "
+echo -n "[dbmig] Migrating Clauto database to version(s) <0>..."
 while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
     # Determine the next database version
 	let DB_VERSION_NEXT=$DB_VERSION_CURRENT+1
@@ -35,7 +35,7 @@ while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
     fi
 
     # Apply the migration script
-    echo -n $DB_VERSION_NEXT"..."
+    echo -n "<"$DB_VERSION_NEXT">..."
     sqlite3 $DB_FILE < $DB_SCRIPTS_DIR/$DB_VERSION_NEXT.sql
 
     # Ensure the migration script updated the user_version pragma

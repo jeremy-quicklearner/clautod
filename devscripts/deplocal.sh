@@ -6,7 +6,7 @@
 # way of testing new code without doing a release
 
 # Ensure clautod is installed
-if [ ! $(dpkg-query -W --showformat='${Status}\n' clautod | grep "install ok installed") ] ; then
+if [ "$(dpkg-query -W --showformat='${Status}\n' clautod | grep 'install ok installed')" == "" ] ; then
     echo "[deplocal] clautod not installed"
     exit 1
 fi
@@ -15,10 +15,10 @@ fi
 sudo systemctl stop clautod
 
 # Copy the clautod source from the repo to the clautod installation directory
-sudo cp clautod/* /usr/share/clauto/clautod
+sudo cp -r clautod/* /usr/share/clauto/clautod
 
 # There may have been database changes, so enact database migration
-if [ ! sudo /usr/share/clauto/clautod/dbmig/dbmig.sh ] ; then
+if ! sudo /usr/share/clauto/clautod/dbmig/dbmig.sh ; then
     echo "[deplocal] DB migration failure detected. Exiting without restarting clautod"
     exit 1
 fi
