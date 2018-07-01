@@ -21,18 +21,18 @@ echo "[release] Releasing clautod v"$1"..."
 echo "[release] Preparing package tree..."
 
 # Populate README files in debian directory
-cp ../README.md ../debian/README.debian
-cp ../README.md ../debian/README.source
+cp README.md debian/README.debian
+cp README.md debian/README.source
 
 # Populate changelog based on git log
-echo "clautod ("$1") unstable; urgency=medium"                           > ../debian/changelog
-echo ""                                                                 >> ../debian/changelog
-git log --oneline $(git tag | sort -V | tail -n 1)..@ | sed 's/^/  * /' >> ../debian/changelog
-echo ""                                                                 >> ../debian/changelog
-echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R)  >> ../debian/changelog
+echo "clautod ("$1") unstable; urgency=medium"                           > debian/changelog
+echo ""                                                                 >> debian/changelog
+git log --oneline $(git tag | sort -V | tail -n 1)..@ | sed 's/^/  * /' >> debian/changelog
+echo ""                                                                 >> debian/changelog
+echo " -- Jeremy Lerner <jeremy.cpsc.questions@gmail.com>  "$(date -R)  >> debian/changelog
 
 # Let the user edit the changelist
-nano ../debian/changelog
+nano debian/changelog
 
 echo "[release] Package tree ready. Building package..."
 
