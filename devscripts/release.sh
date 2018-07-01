@@ -49,19 +49,29 @@ if ! git tag -a v$1 && git push --tags ; then
     exit 1
 fi
 
-echo "[release] Commit tagged. Publishing to local repo..."
+echo "[release] Commit tagged. Publishing to local Debian repo..."
 
 # Add the new package to the local repo
 sudo reprepro -b /var/www/repos/apt/debian includedeb stretch ../clautod_$1_all.deb
 
-echo "[release] Package published. Cleaning up..."
+# Move all the build artefacts to the clauto-releases repo
+echo "[release] Package published. Moving artefacts to clauto-releases Git repo"
 
-# Cleanup
-rm ../clautod_$1_all.deb
-rm ../clautod_$1_amd64.buildinfo
-rm ../clautod_$1_amd64.changes
-rm ../clautod_$1.dsc
-rm ../clautod_$1.tar.xz
+mkdir -p ../clauto-releases/clautod_$1
+mv ../clautod_$1_all.deb         ../clauto-releases/clautod_$1
+mv ../clautod_$1_amd64.buildinfo ../clauto-releases/clautod_$1
+mv ../clautod_$1_amd64.changes   ../clauto-releases/clautod_$1
+mv ../clautod_$1.dsc             ../clauto-releases/clautod_$1
+mv ../clautod_$1.tar.xz          ../clauto-releases/clautod_$1
 
-echo "[release] Cleaned up."
-echo "[release] clautod v"$1" is published."
+# Commit and push to clauto-releases
+echo "[release] Artefacts moved. Committing and pushing..."
+
+cd ../clauto-releases/clautod_$1
+git add .
+git status
+git commit -m "Released clautod_"$1
+git push origin master
+
+echo "[release] Committed and pushed."
+echo "[release] clautod_"$1" is live."
