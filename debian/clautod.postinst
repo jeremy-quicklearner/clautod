@@ -3,6 +3,9 @@ set -e
 
 #DEBHELPER#
 
+# Reload the systemd configuration
+systemctl reload-daemon
+
 # Start the clautod service now that it's installed
 systemctl start clautod
 
