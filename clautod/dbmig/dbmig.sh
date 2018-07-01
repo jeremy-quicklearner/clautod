@@ -29,7 +29,7 @@ while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
 
     # Ensure a migration script exists for that version
     if [ ! -f $DB_SCRIPTS_DIR/$DB_VERSION_NEXT.sql ] ; then
-        echo ; >&2 echo "[dbmig] Error: Migration script for database version <" $DB_VERSION_NEXT "> not found. Unable to migrate to version <" $DB_VERSION_GOAL ">"
+        echo ; >&2 echo "[dbmig] Error: Migration script for database version <"$DB_VERSION_NEXT"> not found. Unable to migrate to version <"$DB_VERSION_GOAL">"
         >&2 echo "Clauto Database migration failed"
         exit 1
     fi
@@ -40,7 +40,7 @@ while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
 
     # Ensure the migration script updated the user_version pragma
     if [ $(sqlite3 $DB_FILE 'PRAGMA user_version') -ne $DB_VERSION_NEXT ] ; then
-        echo ; >&2 echo "[dbmig] Error: Migration script for database version <" $DB_VERSION_NEXT "> didn't update user_version pragma. Unable to migrate to version <" $DB_VERSION_GOAL ">"
+        echo ; >&2 echo "[dbmig] Error: Migration script for database version <"$DB_VERSION_NEXT"> didn't update user_version pragma. Unable to migrate to version <"$DB_VERSION_GOAL">"
          >&2 echo "Clauto Database migration failed"
         exit 1
     fi
@@ -50,5 +50,5 @@ while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
 done
 
 # Migration is complete
-echo ; echo "[dbmig] Clauto database is up-to-date at version <" $DB_VERSION_CURRENT ">"
+echo ; echo "[dbmig] Clauto database is up-to-date at version <"$DB_VERSION_CURRENT">"
 exit 0

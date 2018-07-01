@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script for releasing clautod
+
 # Given a version number, this script creates a debian package
 # from the clautod source, adds it to the local repo, and tags
 # the current git commit with the same version number. This is
