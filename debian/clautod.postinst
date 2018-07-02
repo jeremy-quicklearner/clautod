@@ -3,8 +3,11 @@ set -e
 
 #DEBHELPER#
 
-# Build or migrate the database
+# Create or migrate the database
 /usr/share/clauto/clautod/dbmig/dbmig.sh
+
+# Create or migrate the config file
+/usr/share/clauto/clautod/cfgmig/cfgmig.sh
 
 # Reload the systemd configuration
 systemctl daemon-reload

@@ -5,6 +5,7 @@
 # installation of clautod.
 
 DB_FILE=/etc/clauto/clautod/clauto.db
+DB_FILE_BACKUP=/etc/clauto/clautod/clauto.db.bak
 DB_SCRIPTS_DIR=/usr/share/clauto/clautod/dbmig
 
 # If the database doesn't exist, create it with USER_VERSION 0
@@ -20,6 +21,8 @@ DB_VERSION_CURRENT=$(sqlite3 $DB_FILE 'PRAGMA user_version')
 # Determine what version the database should be
 DB_VERSION_GOAL=$(cat $DB_SCRIPTS_DIR/dbversion.txt)
 
+# Make a backup of the database in case something goes wrong
+cp $DB_FILE $DB_FILE_BACKUP
 
 # Apply each script in order until the goal version is reached
 echo -n "[dbmig] Migrating Clauto database to version(s) <0>..."
@@ -31,6 +34,7 @@ while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
     if [ ! -f $DB_SCRIPTS_DIR/$DB_VERSION_NEXT.sql ] ; then
         echo ; >&2 echo "[dbmig] Error: Migration script for database version <"$DB_VERSION_NEXT"> not found. Unable to migrate to version <"$DB_VERSION_GOAL">"
         >&2 echo "Clauto Database migration failed"
+        mv $DB_FILE_BACKUP $DB_FILE
         exit 1
     fi
 
@@ -42,6 +46,7 @@ while [ $DB_VERSION_CURRENT -ne $DB_VERSION_GOAL ] ; do
     if [ $(sqlite3 $DB_FILE 'PRAGMA user_version') -ne $DB_VERSION_NEXT ] ; then
         echo ; >&2 echo "[dbmig] Error: Migration script for database version <"$DB_VERSION_NEXT"> didn't update user_version pragma. Unable to migrate to version <"$DB_VERSION_GOAL">"
          >&2 echo "Clauto Database migration failed"
+         mv $DB_FILE_BACKUP $DB_FILE
         exit 1
     fi
 
@@ -51,4 +56,5 @@ done
 
 # Migration is complete
 echo ; echo "[dbmig] Clauto database is up-to-date at version <"$DB_VERSION_CURRENT">"
+rm $DB_FILE_BACKUP
 exit 0
