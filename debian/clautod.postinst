@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+# Create or migrate the config file
+/usr/share/clauto/clauto-common/sh/cfgmig.sh clautod
+
+# Create or migrate the database
+/usr/share/clauto/clautod/dbmig/dbmig.sh
+
+# Reload the systemd configuration
+systemctl daemon-reload
+
+# Start the clautod service now that it's installed
+systemctl start clautod
+
+# Also setup the clautod service to run on system startup
+systemctl enable clautod
