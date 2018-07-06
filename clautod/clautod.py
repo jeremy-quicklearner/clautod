@@ -1,6 +1,6 @@
 import time
 
-from clauto-common.log import Log
+from clauto_common.log import Log
 
 mylog = Log("/var/log/clauto")
 mylog = Log()
