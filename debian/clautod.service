@@ -1,0 +1,8 @@
+[Unit]
+Description=Consumables-Listing AUTOmation Daemon
+
+[Service]
+ExecStart=/opt/venvs/clauto-common/bin/python3 /usr/share/clauto/clautod/clautod.py
+
+[Install]
+WantedBy=multi-user.target
