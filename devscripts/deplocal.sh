@@ -14,6 +14,11 @@ fi
 # Bring down the clautod instance
 sudo systemctl stop clautod
 
+# Run the deplocal script for the clauto_common module
+cd ../clauto-common
+./devscripts/deplocal.sh
+cd ../clautod
+
 # Copy the clautod source from the repo to the clautod installation directory
 sudo cp -r clautod/* /usr/share/clauto/clautod
 

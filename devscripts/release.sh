@@ -44,10 +44,11 @@ fi
 
 # Tag the current commit in git
 echo "[release] Package built. Tagging current commit as v"$1
-if ! git tag -a v$1 && git push --tags ; then
+if ! git tag -a v$1 ; then
     echo "[release] Failed to tag commit. This is not a legitimate release!"
     exit 1
 fi
+git push --tags
 
 # Add the new package to the local repo
 echo "[release] Commit tagged. Publishing to local Debian repo..."
