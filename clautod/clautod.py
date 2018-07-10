@@ -1,71 +1,58 @@
-import time
+"""
+Entry point for clautod
+"""
 
+# IMPORTS ##############################################################################################################
+
+# Standard Python modules
+
+# Other Python modules
+
+# Clauto Common Python modules
+from clauto_common.patterns.borg import Borg
 from clauto_common.util.log import Log
 
-mylog = Log("clautod", "/var/log/clauto")
-mylog = Log()
+# CONSTANTS ############################################################################################################
 
-while 1:
-    time.sleep(5)
-    mylog.level_set("CRT")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose <1> <2> <3>")
+# CLASSES ##############################################################################################################
+class ClautodAlreadyInstantiatedException(Exception):
+    pass
 
-    mylog.level_set("CFG")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose <1> <2> <3>")
+class Clautod(Borg):
 
-    mylog.level_set("ERR")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose <1> <2> <3>")
+    def __init__(self):
+        """
+        Constructor for Clautod class. Loads the config file, initializes the layers with it, and runs the WSGI server
+        """
 
-    mylog.level_set("WRN")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose <1> <2> <3>")
+        Borg.__init__()
 
-    mylog.level_set("INF")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose <1> <2> <3>")
+        # If Clautod has already been instantiated in the same process, there's something seriously broken
+        if hasattr(self, "config"):
+            Log("clautod", self.config.log_dir)\
+                .critical("Clautod is already instantiated in the same process. Something is seriously broken.")
+            raise ClautodAlreadyInstantiatedException()
 
-    mylog.level_set("DBG")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose <1> <2> <3>")
+        # Read the config
 
-    mylog.level_set("VRB")
-    mylog.critical("This message is critical <1> <2> <3>")
-    mylog.config("This message is configgey <1> <2> <3>")
-    mylog.error("This message is errorey <1> <2> <3>")
-    mylog.warning("This message is a warning <1> <2> <3>")
-    mylog.info("This message is informative <1> <2> <3>")
-    mylog.debug("This message is debuggey <1> <2> <3>")
-    mylog.verbose("This message is verbose")
+        # Initialize the log
+
+        # Log the config
+
+        # Initialize the database layer
+
+        # Initialize the logic layer
+
+        # Initialize the service layer
+
+        # Start the WSGI Server
+
+# HELPERS ##############################################################################################################
+
+# MAIN #################################################################################################################
+
+if __name__ == "main":
+    """
+    Instantiate the Clautod class. Its constructor will take it from here.
+    """
+    Clautod()

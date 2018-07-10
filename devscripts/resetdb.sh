@@ -16,16 +16,16 @@ fi
 # This code for determining the database's absolute path is duplicated from dbmig.sh,
 # but shouldn't be refactored into its own script because devscripts shouldn't share code with the package
 # Determine the database's location by reading the config file. Filter out the line with the database's location
-db_dir=$(cat $CFG_FILE | egrep ^\\s*$CFG_KEY_DB_DIR\\s*=.*$)
+db_dir=$(cat ${CFG_FILE} | egrep ^\\s*${CFG_KEY_DB_DIR}\\s*=.*$)
 
 # Trim off the key and '=' character
-db_dir=$(echo $db_dir | sed -r -e 's/.*=\s*//g')
+db_dir=$(echo ${db_dir} | sed -r -e 's/.*=\s*//g')
 
 # Trim off any trailing whitespace or comment
-db_dir=$(echo $db_dir | sed -r -e 's/\s*(#.*)?//g') 
+db_dir=$(echo ${db_dir} | sed -r -e 's/\s*(#.*)?//g')
 
 # Now the absolute path of the database is known
-db_file=$db_dir/clauto.db
+db_file=${db_dir}/clauto.db
 
 # Bring down the clautod instance
 echo "[resetdb] Stopping clautod..."
@@ -33,7 +33,7 @@ sudo systemctl stop clautod
 
 # Delete the database
 echo "[resetdb] clautod stopped. Deleting database..."
-sudo rm -f $db_file
+sudo rm -f ${db_file}
 
 # Enact database migration to rebuild the database
 echo "[resetdb] Database deleted. Enacting database migration..."
