@@ -16,6 +16,7 @@ from clauto_common.util.log import Log
 # Clautod Python modules
 from ..database.general import ClautodDatabaseLayer
 
+
 # CONSTANTS ############################################################################################################
 
 # CLASSES ##############################################################################################################
