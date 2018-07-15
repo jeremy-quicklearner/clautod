@@ -10,6 +10,7 @@ import sqlite3
 # Other Python modules
 
 # Clauto Common Python modules
+from clauto_common.util.config import ClautoConfig
 from clauto_common.exceptions import DatabaseStateException
 
 # Clautod Python modules
@@ -24,8 +25,8 @@ class ClautoDatabaseConnection:
     A connection to the Clauto database (to be used in a WITH-statement)
     """
 
-    def __init__(self, config):
-        self.db_filename = config["db_dir"] + "/clauto.db"
+    def __init__(self):
+        self.db_filename = ClautoConfig()["db_dir"] + "/clauto.db"
 
     def __enter__(self):
         self.connection = sqlite3.connect(self.db_filename)

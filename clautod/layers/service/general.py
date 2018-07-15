@@ -10,6 +10,7 @@ General service layer for Clautod
 
 # Clauto Common Python modules
 from clauto_common.patterns.singleton import Singleton
+from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 
 # Clautod Python modules
@@ -26,7 +27,7 @@ class ClautodServiceLayer(Singleton):
     Clautod service layer
     """
 
-    def __init__(self, config):
+    def __init__(self):
         """
         Initialize the service layer
         :param config:
@@ -38,15 +39,15 @@ class ClautodServiceLayer(Singleton):
             return
 
         # Initialize config
-        self.config = config
+        self.config = ClautoConfig()
 
         # Initialize logging
         self.log = Log("clautod")
         self.log.debug("Service layer initializing...")
 
         # Initialize Database and Logic Layers
-        self.database_layer = ClautodDatabaseLayer(self.config)
-        self.logic_layer = ClautodLogicLayer(self.config)
+        self.database_layer = ClautodDatabaseLayer()
+        self.logic_layer = ClautodLogicLayer()
 
         # Initialization complete
         self.log.debug("Service layer initialized")

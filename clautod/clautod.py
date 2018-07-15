@@ -20,6 +20,7 @@ from clauto_common.exceptions import exception_to_exit_code
 from clauto_common.exceptions import EXIT_ERROR
 
 # Clautod Python modules
+from server.app import ClautodFlaskApp
 from layers.service.general import ClautodServiceLayer
 from layers.logic.general import ClautodLogicLayer
 from layers.database.general import ClautodDatabaseLayer
@@ -63,13 +64,13 @@ class Clautod(Singleton):
                 self.log.config("Loaded <%s> = <%s>", setting, value)
 
             # Initialize the database layer
-            self.database_layer = ClautodDatabaseLayer(self.config)
+            self.database_layer = ClautodDatabaseLayer()
 
             # Initialize the logic layer
-            self.logic_layer = ClautodLogicLayer(self.config)
+            self.logic_layer = ClautodLogicLayer()
 
             # Initialize the service layer
-            self.service_layer = ClautodServiceLayer(self.config)
+            self.service_layer = ClautodServiceLayer()
 
             # Start the WSGI Server
             while True:

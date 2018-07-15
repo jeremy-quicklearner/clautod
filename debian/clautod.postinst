@@ -13,8 +13,6 @@ set -e
 if [ ! -f "/etc/clauto/clautod/clauto-cert.pem" ] ; then
     echo "[postinst] The Clauto Daemon requires an SSL certificate and private key. They will now be created and self-signed."
     openssl req -x509 -newkey rsa:4096 -nodes -out /etc/clauto/clautod/clauto-cert.pem -keyout /etc/clauto/clautod/clauto-pkey.pem -days 3650
-    #chmod 500 /etc/clauto/clautod/clauto-cert.pem
-    #chmod 500 /etc/clauto/clautod/clauto-pkey.pem
     echo "[postinst] Note that the SSL certificate will expire in ten years"
 fi
 
