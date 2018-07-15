@@ -8,6 +8,7 @@ Homepage: https://github.com/jeremy-quicklearner/clautod
 
 Package: clautod
 Architecture: all
-Depends: ${misc:Depends}, clauto-common (>=0.6.6)
+Depends: ${misc:Depends}, clauto-common (>=0.6.7)
+Pre-Depends: ${misc:Pre-Depends}, openssl (>=1.1.0)
 Description: Consumables-Listing AUTOmation Daemon
  A home inventory tracker
