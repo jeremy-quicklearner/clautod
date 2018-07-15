@@ -30,7 +30,6 @@ class ClautodDatabaseLayerUser(Singleton):
     def __init__(self):
         """
         Initialize the user database layer
-        :param config:
         """
 
         # Singleton instantiation
@@ -43,8 +42,6 @@ class ClautodDatabaseLayerUser(Singleton):
 
         # Initialize logging
         self.log = Log("clautod")
-
-        self.user_get_by_username("admin")
 
     def user_get_by_username(self, username):
         """

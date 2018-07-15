@@ -32,7 +32,6 @@ class ClautodDatabaseLayer(Singleton):
     def __init__(self):
         """
         Initialize the database layer
-        :param config:
         """
 
         # Singleton instantiation

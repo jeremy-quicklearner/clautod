@@ -30,7 +30,6 @@ class ClautodLogicLayer(Singleton):
     def __init__(self):
         """
         Initialize the logic layer
-        :param config:
         """
 
         # Singleton instantiation

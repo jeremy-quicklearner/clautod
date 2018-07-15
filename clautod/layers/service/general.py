@@ -30,7 +30,6 @@ class ClautodServiceLayer(Singleton):
     def __init__(self):
         """
         Initialize the service layer
-        :param config:
         """
 
         # Singleton instantiation
