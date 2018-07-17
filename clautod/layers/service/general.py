@@ -14,8 +14,9 @@ from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 
 # Clautod Python modules
-from ..logic.general import ClautodLogicLayer
-from ..database.general import ClautodDatabaseLayer
+from layers.logic.general import ClautodLogicLayer
+from layers.database.general import ClautodDatabaseLayer
+from layers.service.user import ClautodServiceLayerUser
 
 
 # CONSTANTS ############################################################################################################
@@ -33,8 +34,8 @@ class ClautodServiceLayer(Singleton):
         """
 
         # Singleton instantiation
-        Singleton.__init__(self, __class__)
-        if Singleton.is_initialized(__class__):
+        Singleton.__init__(self)
+        if Singleton.is_initialized(self):
             return
 
         # Initialize config
@@ -47,6 +48,9 @@ class ClautodServiceLayer(Singleton):
         # Initialize Database and Logic Layers
         self.database_layer = ClautodDatabaseLayer()
         self.logic_layer = ClautodLogicLayer()
+
+        # Initialize facilities
+        self.user_facility = ClautodServiceLayerUser()
 
         # Initialization complete
         self.log.debug("Service layer initialized")

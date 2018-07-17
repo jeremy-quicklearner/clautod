@@ -49,7 +49,7 @@ class ClautoDatabaseConnection:
 
         # Sanity check
         if min_records > max_records:
-            raise Exception()
+            raise Exception("min_records > max_records in get_records_by_key")
 
         # Execute the query
         result = self.connection.execute(

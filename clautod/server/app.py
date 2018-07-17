@@ -26,9 +26,17 @@ clauto_flask_app = Flask("Clauto Server")
 
 
 # ROUTES ###############################################################################################################
-@clauto_flask_app.route("/ping")
+@clauto_flask_app.route("/ping")  # TODO: Generate the routes dynamically based on a something in the service layer
 def hello():
     return "pong"
+
+@clauto_flask_app.route("/login", methods=['GET'])
+def login():
+    from layers.service.general import ClautodServiceLayer
+    svc = ClautodServiceLayer()
+
+    from flask import Response, request
+    return Response(svc.user_facility.user_login(request))
 
 
 # CLASSES ##############################################################################################################
@@ -41,8 +49,8 @@ class ClautoFlaskApp(Singleton):
         """
 
         # Singleton Initialization
-        Singleton.__init__(self, __class__)
-        if Singleton.is_initialized(__class__):
+        Singleton.__init__(self)
+        if Singleton.is_initialized(self):
             return
 
         # Initialize config

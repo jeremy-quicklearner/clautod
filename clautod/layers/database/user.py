@@ -12,6 +12,7 @@ User facility of database layer for Clautod
 from clauto_common.patterns.singleton import Singleton
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
+from clauto_common.exceptions import MissingSubjectException
 
 # Clautod Python modules
 from layers.database.util import ClautoDatabaseConnection
@@ -24,7 +25,7 @@ from entities.user import User
 
 class ClautodDatabaseLayerUser(Singleton):
     """
-    Clautod database layer
+    Clautod database layer user facility
     """
 
     def __init__(self):
@@ -33,8 +34,8 @@ class ClautodDatabaseLayerUser(Singleton):
         """
 
         # Singleton instantiation
-        Singleton.__init__(self, __class__)
-        if Singleton.is_initialized(__class__):
+        Singleton.__init__(self)
+        if Singleton.is_initialized(self):
             return
 
         # Initialize config
@@ -43,16 +44,22 @@ class ClautodDatabaseLayerUser(Singleton):
         # Initialize logging
         self.log = Log("clautod")
 
+        self.log.verbose("Database layer user facility initialized")
+
     def user_get_by_username(self, username):
         """
         Gets a user record from the database
         :param username: The username of the user to get
-        :return:
+        :return: A User object containing the requested user's data
         """
+
+        self.log.verbose("Selecting user from database by username <%s>", username)
         with ClautoDatabaseConnection() as db:
             user_record = db.get_record_by_key("users", "username", username, 3, False)
         if not user_record:
-            return None
+            self.log.verbose("Username <%s> not present in database", username)
+            raise MissingSubjectException
 
         username, password_salt, password_hash = user_record
+        self.log.verbose("Found user <%s> in database", username)
         return User(username, None, password_salt, password_hash)

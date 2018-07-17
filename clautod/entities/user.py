@@ -38,8 +38,7 @@ class User:
         self.password_salt = password_salt
         self.password_hash = password_hash
 
-        Log("clautod").verbose("User <%s> has password salt <%s>", self.username, self.password_salt)
-        Log("clautod").verbose("User <%s> has password hash <%s>", self.username, self.password_hash.format())
+        # Don't log the attributes. They're sensitive information
 
     def __init_password_salt(self, password, password_salt):
         """
@@ -50,7 +49,7 @@ class User:
         """
 
         # Validate password
-        Validator().validate_password(password)
+        self.password = Validator().validate_password(password, True)
 
         # Hash the password and salt
         password_hash = sha256((password + "+" + password_salt).encode()).hexdigest()

@@ -37,9 +37,9 @@ class Clautod(Singleton):
         Constructor for Clautod class. Loads the config file, initializes the layers with it, and runs the WSGI server
         """
 
-        Singleton.__init__(self, __class__)
+        Singleton.__init__(self)
         # If Clautod has already been instantiated in the same process, there's something seriously broken
-        if Singleton.is_initialized(__class__):
+        if Singleton.is_initialized(self):
             # Since Clautod is already initialized, so is the log. So we can log the problem
             self.log.critical("Clautod is already instantiated in the same process. Something is seriously broken.")
             raise ClautodAlreadyInstantiatedException()

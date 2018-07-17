@@ -35,8 +35,8 @@ class ClautodDatabaseLayer(Singleton):
         """
 
         # Singleton instantiation
-        Singleton.__init__(self, __class__)
-        if Singleton.is_initialized(__class__):
+        Singleton.__init__(self)
+        if Singleton.is_initialized(self):
             return
 
         # Initialize config
@@ -58,8 +58,8 @@ class ClautodDatabaseLayer(Singleton):
         else:
             self.log.verbose("DB version is <%s>", user_version_pragma)
 
-        # Initialize each portion of the database layer
-        self.user = ClautodDatabaseLayerUser()
+        # Initialize facilities
+        self.user_facility = ClautodDatabaseLayerUser()
 
         # Initialization complete
         self.log.debug("Database layer initialized")
