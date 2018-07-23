@@ -51,7 +51,7 @@ class User:
         self.password = Validator().validate_password(password, True)
 
         # Hash the password and salt
-        password_hash = sha256((password + "+" + password_salt).encode()).hexdigest()
+        password_hash = sha256((str(password) + "+" + password_salt).encode()).hexdigest()
 
         # Initialize the salt and hash
         self.__init_salt_hash(password_salt, password_hash)
@@ -90,3 +90,13 @@ class User:
             self.__init_salt_hash(password_salt, password_hash)
         else:
             self.__init_password_salt(password, password_salt)
+
+    def to_dict(self):
+        """
+        Returns a dict representation of the user
+        :return: A dict representation of the user
+        """
+        return {
+            "username": self.username,
+            "privilege_level": self.privilege_level
+        }

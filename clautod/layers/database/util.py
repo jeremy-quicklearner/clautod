@@ -35,6 +35,36 @@ class ClautoDatabaseConnection:
     def __exit__(self, a_type, value, traceback):
         self.connection.close()
 
+    def get_all_records_by_table(self, table, min_records=None, max_records=None, num_fields_in_record=None):
+        """
+        Select all records from a table, filtered by a key
+        :param table: The table to select from
+        :param min_records: The minimum number of records that may be selected
+        :param max_records: The maximum number of records that may be selected
+        :param num_fields_in_record: The number of fields that should be in each record
+        :return: An array of the records selected
+        """
+
+        # Sanity check
+        if min_records and max_records and min_records > max_records:
+            raise Exception("min_records > max_records in get_records_by_key")
+
+        # Execute the query
+        result = self.connection.execute(
+            'SELECT * from %s;' % table
+        ).fetchall()
+
+        # Validate the results
+        if min_records and len(result) < min_records:
+            raise DatabaseStateException("All-Selection on table <%s> yielded too few records" % table)
+        if max_records and len(result) > max_records:
+            raise DatabaseStateException("All-Selection on table <%s> yielded too many records" % table)
+        if num_fields_in_record and len(result) > 0 and len(result[0]) != num_fields_in_record:
+            raise DatabaseStateException("All-Selection on table <%s> yielded malformed record(s)" % table)
+
+        # Success
+        return result
+
     def get_records_by_key(self, table, key_name, key, min_records=None, max_records=None, num_fields_in_record=None):
         """
         Select all records from a table, filtered by a key
@@ -48,7 +78,7 @@ class ClautoDatabaseConnection:
         """
 
         # Sanity check
-        if min_records > max_records:
+        if min_records and max_records and min_records > max_records:
             raise Exception("min_records > max_records in get_records_by_key")
 
         # Execute the query

@@ -5,6 +5,7 @@ User facility of service layer for Clautod
 # IMPORTS ##############################################################################################################
 
 # Standard Python modules
+import json
 from time import time
 import traceback
 from cryptography.x509 import load_pem_x509_certificate
@@ -162,7 +163,9 @@ class ClautodServiceLayerUser(Singleton):
         """
         Authenticate a login request and respond with a session token
         :param params: Request parameters
-        :return: The response to be returned
+            - username: The username to login with
+            - password: The password to login with
+        :return: A JWT session token for the user
         """
 
         # Construct a User object with the given username and password
@@ -184,5 +187,32 @@ class ClautodServiceLayerUser(Singleton):
         return self.build_jwt_session_token(found_user.username, found_user.privilege_level)[0]
 
     def get(self, params):
-        # TODO
-        pass
+        """
+        Get a user or users from the database
+        :param params: Request parameters
+            - username: The username of the user to retrieve. May be 'all' for a list of all users
+        :return: A user or array of users, in JSON form
+        """
+
+        # Extract the username from the params
+        username = params.get("username")
+
+        # Handle the 'all' special case
+        if username == "all":
+            users = self.logic_layer.user_facility.get_all()
+            return json.dumps([user.to_dict() for user in users])
+
+        # Get the user from the database
+        try:
+            return json.dumps(self.logic_layer.user_facility.get(User(username)).to_dict())
+        except MissingSubjectException:
+            raise NotFound("User <%s> not found" % username)
+
+    def patch(self, params):
+        raise NotImplemented()  # TODO
+
+    def post(self, params):
+        raise NotImplemented()  # TODO
+
+    def delete(self, params):
+        raise NotImplemented()  # TODO

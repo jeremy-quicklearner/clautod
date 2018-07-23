@@ -63,3 +63,21 @@ class ClautodDatabaseLayerUser(Singleton):
         username, privilege_level, password_salt, password_hash = user_record
         self.log.verbose("Found user <%s> in database", username)
         return User(username, None, privilege_level, password_salt, password_hash)
+
+    def get_all(self):
+        """
+        Gets every user record in the database
+        :return: An array of user objects for all users in the database
+        """
+
+        self.log.verbose("Selecting all users from database")
+        with ClautoDatabaseConnection() as db:
+            user_records = db.get_all_records_by_table("users", 0, int(self.config["max_users"]), 4)
+            usernames = [user_record[0] for user_record in user_records]
+            privilege_levels = [user_record[1] for user_record in user_records]
+            # Skip the password salt and password hash. There should never be any reason to get them all at once
+            return [
+                User(username, None, privilege_level, None, None)
+                for (username, privilege_level)
+                in zip(usernames, privilege_levels)
+            ]
