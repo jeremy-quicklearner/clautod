@@ -58,12 +58,14 @@ class ClautoDatabaseConnection:
 
         # Validate the results
         if min_records and len(result) < min_records:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too few records", table, key)
+            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too few records" %
+                                         (table, key))
         if max_records and len(result) > max_records:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too many records", table, key)
+            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too many records" %
+                                         (table, key))
         if num_fields_in_record and len(result) > 0 and len(result[0]) != num_fields_in_record:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded malformed record(s)", table, key
-                                         )
+            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded malformed record(s)" %
+                                         (table, key))
 
         # Success
         return result

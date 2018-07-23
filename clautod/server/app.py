@@ -8,6 +8,7 @@ Entry point for clautod
 
 # Other Python modules
 from flask import Flask
+from flask import request
 from gevent.pywsgi import WSGIServer
 
 
@@ -17,7 +18,7 @@ from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 
 # Clautod Python modules
-
+from layers.service.general import ClautodServiceLayer
 
 # CONSTANTS ############################################################################################################
 
@@ -26,21 +27,17 @@ clauto_flask_app = Flask("Clauto Server")
 
 
 # ROUTES ###############################################################################################################
-@clauto_flask_app.route("/ping")  # TODO: Generate the routes dynamically based on a something in the service layer
-def hello():
-    return "pong"
 
-@clauto_flask_app.route("/login", methods=['GET'])
-def login():
-    from layers.service.general import ClautodServiceLayer
-    svc = ClautodServiceLayer()
+# Clauto API
+# noinspection PyUnusedLocal
+@clauto_flask_app.route("/api/<path:path>", methods=['GET', 'PATCH', 'POST', 'DELETE'])
+def api(path):
+    return ClautodServiceLayer().handle_api_request(request)
 
-    from flask import Response, request
-    return Response(svc.user_facility.user_login(request))
 
+# Clauto Web GUI TODO: Make a route for the web gui
 
 # CLASSES ##############################################################################################################
-
 class ClautoFlaskApp(Singleton):
 
     def __init__(self):
@@ -59,6 +56,9 @@ class ClautoFlaskApp(Singleton):
         # Initialize logging
         self.log = Log("clautod")
         self.log.debug("Flask App initializing...")
+
+        # Initialize service layer
+        self.service_layer = ClautodServiceLayer()
 
         # Initialize the Flask App
         self.wsgi_server = WSGIServer(

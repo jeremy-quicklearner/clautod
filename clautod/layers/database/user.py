@@ -46,7 +46,7 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Database layer user facility initialized")
 
-    def user_get_by_username(self, username):
+    def get_by_username(self, username):
         """
         Gets a user record from the database
         :param username: The username of the user to get
@@ -55,11 +55,11 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Selecting user from database by username <%s>", username)
         with ClautoDatabaseConnection() as db:
-            user_record = db.get_record_by_key("users", "username", username, 3, False)
+            user_record = db.get_record_by_key("users", "username", username, 4, False)
         if not user_record:
             self.log.verbose("Username <%s> not present in database", username)
             raise MissingSubjectException
 
-        username, password_salt, password_hash = user_record
+        username, privilege_level, password_salt, password_hash = user_record
         self.log.verbose("Found user <%s> in database", username)
-        return User(username, None, password_salt, password_hash)
+        return User(username, None, privilege_level, password_salt, password_hash)

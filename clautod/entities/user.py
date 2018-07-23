@@ -11,7 +11,6 @@ from hashlib import sha256
 # Other Python modules
 
 # Clauto Common Python modules
-from clauto_common.util.log import Log
 from clauto_common.util.validation import Validator
 
 
@@ -72,16 +71,18 @@ class User:
         # Initialize the salt and hash
         self.__init_password_salt(password, password_salt)
 
-    def __init__(self, username, password, password_salt=None, password_hash=None):
+    def __init__(self, username, password=None, privilege_level=0, password_salt=None, password_hash=None):
         """
         Create a user given a user name and some of: a password, salt, and hash
         :param username: The username
         :param password: The password
+        :param privilege_level: The privilege level
         :param password_salt: The salt
         :param password_hash: The hash
         """
-        # Initialize username
+        # Initialize username and privilege level
         self.username = Validator().validate_username(username)
+        self.privilege_level = Validator().validate_privilege_level(privilege_level)
 
         if not password_salt:
             self.__init_password(password)

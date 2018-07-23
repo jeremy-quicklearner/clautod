@@ -5,13 +5,26 @@ General service layer for Clautod
 # IMPORTS ##############################################################################################################
 
 # Standard Python modules
+import traceback
 
 # Other Python modules
+from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import MethodNotAllowed
+from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import NotImplemented
+from werkzeug.exceptions import InternalServerError
+from flask import Response
 
 # Clauto Common Python modules
 from clauto_common.patterns.singleton import Singleton
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
+from clauto_common.access_control import PRIVILEGE_LEVEL_ADMIN
+from clauto_common.access_control import PRIVILEGE_LEVEL_WRITE
+from clauto_common.access_control import PRIVILEGE_LEVEL_READ
+from clauto_common.access_control import PRIVILEGE_LEVEL_PUBLIC
 
 # Clautod Python modules
 from layers.logic.general import ClautodLogicLayer
@@ -21,8 +34,80 @@ from layers.service.user import ClautodServiceLayerUser
 
 # CONSTANTS ############################################################################################################
 
+# This dict maps URL paths to their intended HTTP methods, facilities, and handler functions in the service layer
+url_path_to_path_info = {
+    "/api/ping_public": {
+        "facility": "general",
+        "method_to_handler_info": {
+            "GET": {
+                "handler": "ping",
+                "privilege": PRIVILEGE_LEVEL_PUBLIC
+            }
+        }
+    },
+    "/api/ping_read": {
+        "facility": "general",
+        "method_to_handler_info": {
+            "GET": {
+                "handler": "ping",
+                "privilege": PRIVILEGE_LEVEL_READ
+            }
+        }
+    },
+    "/api/ping_write": {
+        "facility": "general",
+        "method_to_handler_info": {
+            "GET": {
+                "handler": "ping",
+                "privilege": PRIVILEGE_LEVEL_WRITE
+            }
+        }
+    },
+    "/api/ping_admin": {
+        "facility": "general",
+        "method_to_handler_info": {
+            "GET": {
+                "handler": "ping",
+                "privilege": PRIVILEGE_LEVEL_ADMIN
+            }
+        }
+    },
+    "/api/user/login": {
+        "facility": "user",
+        "method_to_handler_info": {
+            "POST": {
+                "handler": "login",
+                "privilege": PRIVILEGE_LEVEL_PUBLIC
+            }
+        }
+    },
+    "/api/user": {
+        "facility": "user",
+        "method_to_handler_info": {
+            "GET": {
+                "handler": "get",
+                "privilege": PRIVILEGE_LEVEL_READ
+            },
+            "PATCH": {
+                "handler": "patch",
+                "privilege": PRIVILEGE_LEVEL_ADMIN
+            },
+            "POST": {
+                "handler": "post",
+                "privilege": PRIVILEGE_LEVEL_ADMIN
+            },
+            "DELETE": {
+                "handler": "delete",
+                "privilege": PRIVILEGE_LEVEL_ADMIN
+            }
+        }
+    }
+}
+
+
 # CLASSES ##############################################################################################################
 
+# noinspection PyUnusedLocal
 class ClautodServiceLayer(Singleton):
     """
     Clautod service layer
@@ -54,3 +139,149 @@ class ClautodServiceLayer(Singleton):
 
         # Initialization complete
         self.log.debug("Service layer initialized")
+
+    # METHODS ##########################################################################################################
+
+    def handle_api_request(self, request):
+        """
+        Handles an API request by delegating to the appropriate handler function
+        :param request: The HTTP API request
+        :return: The HTTP API response
+        """
+
+        # Determine the HTTP method
+        try:
+            method = request.method
+        except AttributeError:
+            self.log.error("Attempted to process a request object with no method")
+            raise BadRequest("No method in request")
+
+        # Determine the request path
+        try:
+            path = request.path
+        except AttributeError:
+            self.log.error("Attempted to process a request object with no path")
+            raise BadRequest("No path in request")
+
+        # Search for handler info
+        try:
+            path_info = url_path_to_path_info[path]
+        except KeyError:
+            self.log.debug("User attempted HTTP <%s> on invalid path <%s>", request.method)
+            raise NotFound("No Clauto API method <%s>" % request.path)
+
+        # Check for disallowed HTTP method
+        if method not in path_info["method_to_handler_info"]:
+            self.log.debug("HTTP <%s> not permitted for path <%s>", method, path)
+            raise MethodNotAllowed("HTTP <%s> not permitted for path <%s>" % (method, path))
+
+        # Determine handler and required privilege level
+        handler_info = path_info["method_to_handler_info"][method]
+
+        # Check for unimplemented handler
+        if handler_info["handler"] is None:
+            self.log.debug("Handler for HTTP <%s> on path <%s> is not implemented")
+            raise NotImplemented()
+
+        # Renew the session token
+        session_token, session_token_dict = self.user_facility.renew(request.cookies.get("JWT"))
+
+        # Only authenticate the user if the handler's required privilege is higher than public
+        if handler_info["privilege"] > PRIVILEGE_LEVEL_PUBLIC:
+
+            # A session token is required
+            if not session_token:
+                raise Unauthorized("Not logged in")
+
+            # Get the privilege level from the session token
+            try:
+                given_privilege_level = session_token_dict["privilege_level"]
+            except KeyError:
+                raise Unauthorized("Privilege level not found in session token")
+
+            # Ensure the privilege level is high enough for this handler
+            if given_privilege_level < handler_info["privilege"]:
+                raise Unauthorized("User has insufficient privilege for this action")
+
+        # Extract parameters
+        try:
+            if request.method == "GET":
+                params = request.args
+            if request.method == "PATCH":
+                params = request.form
+            if request.method == "POST":
+                params = request.form
+            if request.method == "DELETE":
+                params = request.form
+            else:
+                params = None
+        except AttributeError:
+            raise
+
+        # Find the handler
+        facility = {
+            "general": self,
+            "user":    self.user_facility
+        }[str(path_info["facility"])]
+        handler = getattr(facility, str(handler_info["handler"]))
+
+        # Call the handler
+        try:
+            result = handler(params)
+
+        # Only these exceptions should reach Flask
+        except BadRequest:
+            raise
+        except NotFound:
+            raise
+        except MethodNotAllowed:
+            raise
+        except Unauthorized:
+            raise
+        except Forbidden:
+            raise
+        except NotImplemented:
+            raise
+        except InternalServerError:
+            raise
+
+        # Any other exception becomes an InternalServerError
+        except Exception:
+            for line in (
+                "Handler raised non-HTTP exception. Responding to client with HTTP 500. Traceback is below.\n" +
+                traceback.format_exc()
+            ).split("\n")[:-1]:
+                self.log.error(line)
+            raise InternalServerError()
+
+        # If this was a login, put the result (a session token) in the cookie and put "Success" in the response
+        if request.path == "/api/user/login":
+            cookie = "JWT=%s; Path=/api; Secure; Max-Age=%s" % (result, int(self.config["session_lifetime"]))
+            result = "Success"
+
+        # Otherwise, send back the existing session token (which is either None or has been renewed above)
+        else:
+            cookie = "JWT=%s; Path=/api; Secure; Max-Age=%s" % (session_token, int(self.config["session_lifetime"]))
+
+        # Prepare the response headers
+        headers = {}
+        if cookie:
+            headers["Set-Cookie"] = cookie
+
+        # Return the response
+        return Response(
+            response=result,
+            status=200,
+            headers=headers
+        )
+
+    # API HANDLERS THAT DON'T FIT IN ANY FACILITY ######################################################################
+
+    # noinspection PyMethodMayBeStatic
+    def ping(self, params):
+        """
+        Always returns "pong"
+        :param params: Parameters from HTTP request
+        :return: "pong"
+        """
+        return "pong"
