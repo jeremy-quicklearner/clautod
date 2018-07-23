@@ -20,6 +20,7 @@ from clauto_common.exceptions import exception_to_exit_code
 from clauto_common.exceptions import EXIT_ERROR
 
 # Clautod Python modules
+from server.app import ClautoFlaskApp
 from layers.service.general import ClautodServiceLayer
 from layers.logic.general import ClautodLogicLayer
 from layers.database.general import ClautodDatabaseLayer
@@ -36,9 +37,9 @@ class Clautod(Singleton):
         Constructor for Clautod class. Loads the config file, initializes the layers with it, and runs the WSGI server
         """
 
-        Singleton.__init__(self, __class__)
+        Singleton.__init__(self)
         # If Clautod has already been instantiated in the same process, there's something seriously broken
-        if Singleton.is_initialized(__class__):
+        if Singleton.is_initialized(self):
             # Since Clautod is already initialized, so is the log. So we can log the problem
             self.log.critical("Clautod is already instantiated in the same process. Something is seriously broken.")
             raise ClautodAlreadyInstantiatedException()
@@ -63,17 +64,16 @@ class Clautod(Singleton):
                 self.log.config("Loaded <%s> = <%s>", setting, value)
 
             # Initialize the database layer
-            self.database_layer = ClautodDatabaseLayer(self.config)
+            self.database_layer = ClautodDatabaseLayer()
 
             # Initialize the logic layer
-            self.logic_layer = ClautodLogicLayer(self.config)
+            self.logic_layer = ClautodLogicLayer()
 
             # Initialize the service layer
-            self.service_layer = ClautodServiceLayer(self.config)
+            self.service_layer = ClautodServiceLayer()
 
-            # Start the WSGI Server
-            while True:
-                pass
+            # Run the WSGI Server
+            self.flask_app = ClautoFlaskApp()
 
         except Exception:
             for line in (

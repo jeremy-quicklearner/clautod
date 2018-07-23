@@ -10,6 +10,7 @@ General database layer for Clautod
 
 # Clauto Common Python modules
 from clauto_common.patterns.singleton import Singleton
+from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 
 
@@ -28,26 +29,25 @@ class ClautodDatabaseLayer(Singleton):
     Clautod database layer
     """
 
-    def __init__(self, config):
+    def __init__(self):
         """
         Initialize the database layer
-        :param config:
         """
 
         # Singleton instantiation
-        Singleton.__init__(self, __class__)
-        if Singleton.is_initialized(__class__):
+        Singleton.__init__(self)
+        if Singleton.is_initialized(self):
             return
 
         # Initialize config
-        self.config = config
+        self.config = ClautoConfig()
 
         # Initialize logging
         self.log = Log("clautod")
         self.log.debug("Database layer initializing...")
 
         # Confirm that the database is available and has the correct version
-        with ClautoDatabaseConnection(config) as db:
+        with ClautoDatabaseConnection() as db:
             user_version_pragma = db.connection.execute("PRAGMA user_version;").fetchall()[0][0]
         with open("/usr/share/clauto/clautod/dbmig/dbversion.txt", "r") as dbversion_file:
             dbversion = int(dbversion_file.read())
@@ -58,8 +58,8 @@ class ClautodDatabaseLayer(Singleton):
         else:
             self.log.verbose("DB version is <%s>", user_version_pragma)
 
-        # Initialize each portion of the database layer
-        self.user = ClautodDatabaseLayerUser(config)
+        # Initialize facilities
+        self.user_facility = ClautodDatabaseLayerUser()
 
         # Initialization complete
         self.log.debug("Database layer initialized")

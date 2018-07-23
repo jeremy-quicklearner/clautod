@@ -10,6 +10,7 @@ import sqlite3
 # Other Python modules
 
 # Clauto Common Python modules
+from clauto_common.util.config import ClautoConfig
 from clauto_common.exceptions import DatabaseStateException
 
 # Clautod Python modules
@@ -24,8 +25,8 @@ class ClautoDatabaseConnection:
     A connection to the Clauto database (to be used in a WITH-statement)
     """
 
-    def __init__(self, config):
-        self.db_filename = config["db_dir"] + "/clauto.db"
+    def __init__(self):
+        self.db_filename = ClautoConfig()["db_dir"] + "/clauto.db"
 
     def __enter__(self):
         self.connection = sqlite3.connect(self.db_filename)
@@ -48,7 +49,7 @@ class ClautoDatabaseConnection:
 
         # Sanity check
         if min_records > max_records:
-            raise Exception()
+            raise Exception("min_records > max_records in get_records_by_key")
 
         # Execute the query
         result = self.connection.execute(
@@ -57,12 +58,14 @@ class ClautoDatabaseConnection:
 
         # Validate the results
         if min_records and len(result) < min_records:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too few records", table, key)
+            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too few records" %
+                                         (table, key))
         if max_records and len(result) > max_records:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too many records", table, key)
+            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too many records" %
+                                         (table, key))
         if num_fields_in_record and len(result) > 0 and len(result[0]) != num_fields_in_record:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded malformed record(s)", table, key
-                                         )
+            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded malformed record(s)" %
+                                         (table, key))
 
         # Success
         return result
