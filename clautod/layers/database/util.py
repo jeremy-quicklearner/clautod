@@ -65,12 +65,21 @@ class ClautoDatabaseConnection:
         # Success
         return result
 
-    def get_records_by_key(self, table, key_name, key, min_records=None, max_records=None, num_fields_in_record=None):
+    def get_records_by_simple_constraint_intersection(
+            self,
+            table,
+            constraints,
+            min_records=None,
+            max_records=None,
+            num_fields_in_record=None
+    ):
         """
-        Select all records from a table, filtered by a key
+        Select the intersection of all records from a table that satisfy some constraints
         :param table: The table to select from
-        :param key_name: The name of the column to filter by
-        :param key: The value to filter with
+        :param constraints: A dict of the form {key1:value1,key2:value2,...}
+                            where each key/value pair must be found in a record
+                            in the database in order for that record to be
+                            included in the result
         :param min_records: The minimum number of records that may be selected
         :param max_records: The maximum number of records that may be selected
         :param num_fields_in_record: The number of fields that should be in each record
@@ -79,26 +88,99 @@ class ClautoDatabaseConnection:
 
         # Sanity check
         if min_records and max_records and min_records > max_records:
-            raise Exception("min_records > max_records in get_records_by_key")
+            raise Exception("min_records > max_records in get_records_by_simple_value_constraints")
+
+        # Build the query (with format specifiers in place of values)
+        maybe_where = 'WHERE ' if len(constraints) else ''
+        sql_constraints = ' AND '.join(['%s = ?' % key for key in constraints.keys()])
+        query = ('SELECT * FROM %s %s' % (table, maybe_where)) + sql_constraints + ';'
 
         # Execute the query
         result = self.connection.execute(
-            'SELECT * from %s WHERE %s = ?;' % (table, key_name), (key,)
+            query, tuple(constraints[key] for key in constraints.keys())
         ).fetchall()
 
         # Validate the results
         if min_records and len(result) < min_records:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too few records" %
-                                         (table, key))
+            raise DatabaseStateException("Selection on table <%s> with constraints <%s> yielded too few records" %
+                                         (table, constraints))
         if max_records and len(result) > max_records:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded too many records" %
-                                         (table, key))
+            raise DatabaseStateException("Selection on table <%s> with constraints <%s> yielded too many records" %
+                                         (table, constraints))
         if num_fields_in_record and len(result) > 0 and len(result[0]) != num_fields_in_record:
-            raise DatabaseStateException("Selection on table <%s> with key <%s> yielded malformed record(s)" %
-                                         (table, key))
+            raise DatabaseStateException("Selection on table <%s> with constraints <%s> yielded malformed record(s)" %
+                                         (table, constraints))
 
         # Success
         return result
+
+    def get_records_by_simple_constraint_union(
+            self,
+            table,
+            constraints,
+            min_records=None,
+            max_records=None,
+            num_fields_in_record=None
+    ):
+        """
+        Select the union of all records from a table that satisfy some constraints
+        :param table: The table to select from
+        :param constraints: A dict of the form {key1:value1,key2:value2,...}
+                            where each key/value pair must be found in a record
+                            in the database in order for that record to be
+                            included in the result
+        :param min_records: The minimum number of records that may be selected
+        :param max_records: The maximum number of records that may be selected
+        :param num_fields_in_record: The number of fields that should be in each record
+        :return: An array of the records selected
+        """
+
+        # Sanity check
+        if min_records and max_records and min_records > max_records:
+            raise Exception("min_records > max_records in get_records_by_simple_value_constraints")
+
+        # Build the query (with format specifiers in place of values)
+        maybe_where = 'WHERE ' if len(constraints) else ''
+        sql_constraints = ' OR '.join(['%s = ?' % key for key in constraints.keys()])
+        query = ('SELECT * FROM %s %s' % (table, maybe_where)) + sql_constraints + ';'
+
+        # Execute the query
+        result = self.connection.execute(
+            query, tuple(constraints[key] for key in constraints.keys())
+        ).fetchall()
+
+        # Validate the results
+        if min_records and len(result) < min_records:
+            raise DatabaseStateException("Selection on table <%s> with constraints <%s> yielded too few records" %
+                                         (table, constraints))
+        if max_records and len(result) > max_records:
+            raise DatabaseStateException("Selection on table <%s> with constraints <%s> yielded too many records" %
+                                         (table, constraints))
+        if num_fields_in_record and len(result) > 0 and len(result[0]) != num_fields_in_record:
+            raise DatabaseStateException("Selection on table <%s> with constraints <%s> yielded malformed record(s)" %
+                                         (table, constraints))
+
+        # Success
+        return result
+
+    def get_records_by_field(self, table, field, value, min_records=None, max_records=None, num_fields_in_record=None):
+        """
+        Select all records from a table, filtered by a field
+        :param table: The table to select from
+        :param field: The name of the column to filter by
+        :param value: The value to filter with
+        :param min_records: The minimum number of records that may be selected
+        :param max_records: The maximum number of records that may be selected
+        :param num_fields_in_record: The number of fields that should be in each record
+        :return: An array of the records selected
+        """
+        return self.get_records_by_simple_constraint_intersection(
+            table,
+            {field:value},
+            min_records,
+            max_records,
+            num_fields_in_record
+        )
 
     def get_record_by_key(self, table, key_name, key, num_fields_in_record=None, must_exist=False):
         """

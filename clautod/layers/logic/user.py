@@ -51,21 +51,17 @@ class ClautodLogicLayerUser(Singleton):
 
         self.log.verbose("Logic layer user facility initialized")
 
-    def get(self, given_user):
+    def get(self, filter_user):
         """
         Gets a user from the database
-        :param given_user: A user object with the username to look up in the database
-        :return: A user from the database with a matching username
+        :param filter_user: A user object with instance variables to look up in the database
+        :return: A user from the database with matching instance variables
         """
-        return self.database_layer.user_facility.get_by_username(given_user.username)
-
-    def get_all(self):
-        """
-        Gets every user in the database
-        :return: An array containing every user in the database
-        """
-
-        return self.database_layer.user_facility.get_all()
+        return self.database_layer.user_facility.get(
+            filter_user.username,
+            filter_user.privilege_level,
+            filter_user.password_salt,
+            filter_user.password_hash)
 
     def authenticate(self, given_user):
         """

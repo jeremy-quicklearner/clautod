@@ -163,8 +163,8 @@ class ClautodServiceLayerUser(Singleton):
         """
         Authenticate a login request and respond with a session token
         :param params: Request parameters
-            - username: The username to login with
-            - password: The password to login with
+            - (Required) username: The username to login with
+            - (Required) password: The password to login with
         :return: A JWT session token for the user
         """
 
@@ -188,25 +188,31 @@ class ClautodServiceLayerUser(Singleton):
 
     def get(self, params):
         """
-        Get a user or users from the database
+        Get users from the database
         :param params: Request parameters
-            - username: The username of the user to retrieve. May be 'all' for a list of all users
-        :return: A user or array of users, in JSON form
+            - (Optional) username: Username to filter by
+            - (Optional) privilege_level: Privilege level to filter by
+        :return: An array of users, in JSON form
         """
 
-        # Extract the username from the params
+        # Extract the filters from params
+        # Skip the password_salt and password_hash. Don't expose them to the client
         username = params.get("username")
+        privilege_level = params.get("privilege_level")
 
-        # Handle the 'all' special case
-        if username == "all":
-            users = self.logic_layer.user_facility.get_all()
-            return json.dumps([user.to_dict() for user in users])
-
-        # Get the user from the database
+        # Create the user object to filter by, and fudge the salt
+        # and hash because they were initialized by the User constructor
         try:
-            return json.dumps(self.logic_layer.user_facility.get(User(username)).to_dict())
-        except MissingSubjectException:
-            raise NotFound("User <%s> not found" % username)
+            user_filter = User(username=username, privilege_level=privilege_level)
+        except ValidationException as e:
+            raise BadRequest("Validation failed: " + str(e))
+        user_filter.password_salt = None
+        user_filter.password_hash = None
+
+        # Get the users from the database
+        return json.dumps(
+            [user.to_dict() for user in self.logic_layer.user_facility.get(user_filter)]
+        )
 
     def patch(self, params):
         raise NotImplemented()  # TODO

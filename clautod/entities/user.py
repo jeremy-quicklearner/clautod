@@ -81,8 +81,8 @@ class User:
         :param password_hash: The hash
         """
         # Initialize username and privilege level
-        self.username = Validator().validate_username(username)
-        self.privilege_level = Validator().validate_privilege_level(privilege_level)
+        self.username = Validator().validate_username(username, True)
+        self.privilege_level = Validator().validate_privilege_level(privilege_level, True)
 
         if not password_salt:
             self.__init_password(password)
