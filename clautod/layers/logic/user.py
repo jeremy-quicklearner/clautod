@@ -54,14 +54,12 @@ class ClautodLogicLayerUser(Singleton):
     def get(self, filter_user):
         """
         Gets a user from the database
-        :param filter_user: A user object with instance variables to look up in the database
-        :return: A user from the database with matching instance variables
+        :param filter_user: A dummy user object with instance variables to filter the database records by
+        :return: An array of user objects from the database with instance variables conforming to the filter
         """
         return self.database_layer.user_facility.get(
-            filter_user.username,
-            filter_user.privilege_level,
-            filter_user.password_salt,
-            filter_user.password_hash)
+            filter_user
+        )
 
     def authenticate(self, given_user):
         """
@@ -81,12 +79,13 @@ class ClautodLogicLayerUser(Singleton):
             raise
 
         # Recreate the User using the given password, and the salt from the user in the DB
+        # This instantiation calculates the password hash in its constructor
         self.log.verbose("Calculating hash of password given by (supposedly) user <%s>", given_user.username)
         user_from_login = User(
-            given_user.username,
-            given_user.password,
-            PRIVILEGE_LEVEL_PUBLIC,
-            user_from_db.password_salt
+            username=given_user.username,
+            password=given_user.password,
+            privilege_level=PRIVILEGE_LEVEL_PUBLIC, # This parameter doesn't matter but it's required by the User class
+            password_salt=user_from_db.password_salt
         )
 
         # Compare the user trying to login with the user from the db

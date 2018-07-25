@@ -28,7 +28,7 @@ from clauto_common.exceptions import InvalidCredentialsException
 
 # Clautod Python modules
 from layers.logic.general import ClautodLogicLayer
-from entities.user import User
+from entities.user import User, UserDummy
 
 
 # CLASSES ##############################################################################################################
@@ -168,9 +168,12 @@ class ClautodServiceLayerUser(Singleton):
         :return: A JWT session token for the user
         """
 
-        # Construct a User object with the given username and password
+        # Construct a dummy User object with the given username and password
         try:
-            given_user = User(params.get("username"), params.get("password"))
+            given_user = UserDummy(
+                username=params.get("username"),
+                password=params.get("password")
+            )
         except NoneException as e:
             raise BadRequest("Missing parameter: <%s>" % str(e))
         except ValidationException as e:
@@ -196,14 +199,13 @@ class ClautodServiceLayerUser(Singleton):
         """
 
         # Extract the filters from params
-        # Skip the password_salt and password_hash. Don't expose them to the client
         username = params.get("username")
         privilege_level = params.get("privilege_level")
 
         # Create the user object to filter by, and fudge the salt
         # and hash because they were initialized by the User constructor
         try:
-            user_filter = User(username=username, privilege_level=privilege_level)
+            user_filter = UserDummy(username=username, privilege_level=privilege_level)
         except ValidationException as e:
             raise BadRequest("Validation failed: " + str(e))
         user_filter.password_salt = None

@@ -16,7 +16,7 @@ from clauto_common.exceptions import MissingSubjectException
 
 # Clautod Python modules
 from layers.database.util import ClautoDatabaseConnection
-from entities.user import User
+from entities.user import User, UserDummy
 
 
 # CONSTANTS ############################################################################################################
@@ -46,27 +46,30 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Database layer user facility initialized")
 
-    def get(self, username=None, privilege_level=None, password_salt=None, password_hash=None):
+    def get(self, user_dummy):
         """
-        Gets user records from the database
-        :param username: The username to select by
-        :param privilege_level: The privilege level to select by
-        :param password_salt: The password salt to select by
-        :param password_hash: The password hash to select by
+        Gets user records from the database, filtered by the fields in a dummy user object
+        :param user_dummy: The dummy user object to filter with
         :return: An array of User objects that matched the selection criteria
         """
         self.log.verbose(
             "Selecting users from database with selection criteria "
             "<username=%s,privilege_level=%s,password_salt=%s,password_hash=%s>",
-            username, privilege_level, password_salt, password_hash
+            user_dummy.username, user_dummy.privilege_level, user_dummy.password_salt, user_dummy.password_hash
         )
-        constraints = {}
-        if username:        constraints["username"] =        username
-        if privilege_level: constraints["privilege_level"] = privilege_level
-        if password_salt:   constraints["password_salt"] =   password_salt
-        if password_hash:   constraints["password_hash"] =   password_hash
+
+        constraints=user_dummy.to_dict()
+        if "password" in constraints and constraints["password"]: return []
+        constraints = {key:constraints[key] for key in constraints.keys() if constraints[key]}
+
         with ClautoDatabaseConnection() as db:
-            user_records = db.get_records_by_simple_constraint_intersection("users", constraints, None, None, 4)
+            user_records = db.get_records_by_simple_constraint_intersection(
+                table="users",
+                constraints=constraints,
+                min_records=None,
+                max_records=None,
+                num_fields_in_record=4
+            )
         usernames =        [user_record[0] for user_record in user_records]
         privilege_levels = [user_record[1] for user_record in user_records]
         password_salts =   [user_record[2] for user_record in user_records]
@@ -86,7 +89,7 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Selecting user from database by username <%s>", username)
         try:
-            return self.get(username, None, None, None)[0]
+            return self.get(UserDummy(username, None, None, None))[0]
         except IndexError:
             raise MissingSubjectException
 
@@ -97,4 +100,4 @@ class ClautodDatabaseLayerUser(Singleton):
         """
 
         self.log.verbose("Selecting all users from database")
-        return self.get(None, None, None, None)
+        return self.get(UserDummy(None, None, None, None))
