@@ -48,10 +48,10 @@ class User:
         """
 
         # Validate password
-        self.password = Validator().validate_password(password, True)
+        password = Validator().validate_password(password, True)
 
         # Hash the password and salt
-        password_hash = sha256((password + "+" + password_salt).encode()).hexdigest()
+        password_hash = sha256((str(password) + "+" + password_salt).encode()).hexdigest()
 
         # Initialize the salt and hash
         self.__init_salt_hash(password_salt, password_hash)
@@ -90,3 +90,47 @@ class User:
             self.__init_salt_hash(password_salt, password_hash)
         else:
             self.__init_password_salt(password, password_salt)
+
+    def to_dict(self):
+        """
+        Returns a dict representation of the user
+        :return: A dict representation of the user
+        """
+        return {
+            "username": self.username,
+            "privilege_level": self.privilege_level
+        }
+
+class UserDummy:
+    """
+    A Clauto user - dummy class with no behaviour
+    """
+
+    def __init__(self, username=None, password=None, privilege_level=None, password_salt=None, password_hash=None):
+        """
+        Create a dummy user given some of: a username, password, privilege level, salt, and hash
+        :param username: The username
+        :param password: The password
+        :param privilege_level: The privilege level
+        :param password_salt: The salt
+        :param password_hash: The hash
+        """
+        # Initialize fields
+        self.username = Validator().validate_username(username, True)
+        self.password = Validator().validate_password(password, True)
+        self.privilege_level = Validator().validate_privilege_level(privilege_level, True)
+        self.password_salt = Validator().validate_int(password_salt, True, 0, None)
+        self.password_hash = Validator().validate_string(password_hash, True, False, False)
+
+    def to_dict(self):
+        """
+        Returns a dict representation of the user
+        :return: A dict representation of the user
+        """
+        return {
+            "username": self.username,
+            "password": self.password,
+            "privilege_level": self.privilege_level,
+            "password_salt": self.password_salt,
+            "password_hash": self.password_hash
+        }

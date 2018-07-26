@@ -34,77 +34,6 @@ from layers.service.user import ClautodServiceLayerUser
 
 # CONSTANTS ############################################################################################################
 
-# This dict maps URL paths to their intended HTTP methods, facilities, and handler functions in the service layer
-url_path_to_path_info = {
-    "/api/ping_public": {
-        "facility": "general",
-        "method_to_handler_info": {
-            "GET": {
-                "handler": "ping",
-                "privilege": PRIVILEGE_LEVEL_PUBLIC
-            }
-        }
-    },
-    "/api/ping_read": {
-        "facility": "general",
-        "method_to_handler_info": {
-            "GET": {
-                "handler": "ping",
-                "privilege": PRIVILEGE_LEVEL_READ
-            }
-        }
-    },
-    "/api/ping_write": {
-        "facility": "general",
-        "method_to_handler_info": {
-            "GET": {
-                "handler": "ping",
-                "privilege": PRIVILEGE_LEVEL_WRITE
-            }
-        }
-    },
-    "/api/ping_admin": {
-        "facility": "general",
-        "method_to_handler_info": {
-            "GET": {
-                "handler": "ping",
-                "privilege": PRIVILEGE_LEVEL_ADMIN
-            }
-        }
-    },
-    "/api/user/login": {
-        "facility": "user",
-        "method_to_handler_info": {
-            "POST": {
-                "handler": "login",
-                "privilege": PRIVILEGE_LEVEL_PUBLIC
-            }
-        }
-    },
-    "/api/user": {
-        "facility": "user",
-        "method_to_handler_info": {
-            "GET": {
-                "handler": "get",
-                "privilege": PRIVILEGE_LEVEL_READ
-            },
-            "PATCH": {
-                "handler": "patch",
-                "privilege": PRIVILEGE_LEVEL_ADMIN
-            },
-            "POST": {
-                "handler": "post",
-                "privilege": PRIVILEGE_LEVEL_ADMIN
-            },
-            "DELETE": {
-                "handler": "delete",
-                "privilege": PRIVILEGE_LEVEL_ADMIN
-            }
-        }
-    }
-}
-
-
 # CLASSES ##############################################################################################################
 
 # noinspection PyUnusedLocal
@@ -137,6 +66,71 @@ class ClautodServiceLayer(Singleton):
         # Initialize facilities
         self.user_facility = ClautodServiceLayerUser()
 
+        # This dict maps URL paths to their intended HTTP methods, facilities, and handler functions in the service
+        # layer
+        self.url_path_to_path_info = {
+            "/api/ping_public": {
+                "method_to_handler_info": {
+                    "GET": {
+                        "handler": self.ping,
+                        "privilege": PRIVILEGE_LEVEL_PUBLIC
+                    }
+                }
+            },
+            "/api/ping_read": {
+                "method_to_handler_info": {
+                    "GET": {
+                        "handler": self.ping,
+                        "privilege": PRIVILEGE_LEVEL_READ
+                    }
+                }
+            },
+            "/api/ping_write": {
+                "method_to_handler_info": {
+                    "GET": {
+                        "handler": self.ping,
+                        "privilege": PRIVILEGE_LEVEL_WRITE
+                    }
+                }
+            },
+            "/api/ping_admin": {
+                "method_to_handler_info": {
+                    "GET": {
+                        "handler": self.ping,
+                        "privilege": PRIVILEGE_LEVEL_ADMIN
+                    }
+                }
+            },
+            "/api/user/login": {
+                "method_to_handler_info": {
+                    "POST": {
+                        "handler": self.user_facility.login,
+                        "privilege": PRIVILEGE_LEVEL_PUBLIC
+                    }
+                }
+            },
+            "/api/user": {
+                "method_to_handler_info": {
+                    "GET": {
+                        "handler": self.user_facility.get,
+                        "privilege": PRIVILEGE_LEVEL_READ
+                    },
+                    "PATCH": {
+                        "handler": self.user_facility.patch,
+                        "privilege": PRIVILEGE_LEVEL_ADMIN
+                    },
+                    "POST": {
+                        "handler": self.user_facility.post,
+                        "privilege": PRIVILEGE_LEVEL_ADMIN
+                    },
+                    "DELETE": {
+                        "handler": self.user_facility.delete,
+                        "privilege": PRIVILEGE_LEVEL_ADMIN
+                    }
+                }
+            }
+        }
+
         # Initialization complete
         self.log.debug("Service layer initialized")
 
@@ -165,7 +159,7 @@ class ClautodServiceLayer(Singleton):
 
         # Search for handler info
         try:
-            path_info = url_path_to_path_info[path]
+            path_info = self.url_path_to_path_info[path]
         except KeyError:
             self.log.debug("User attempted HTTP <%s> on invalid path <%s>", request.method)
             raise NotFound("No Clauto API method <%s>" % request.path)
@@ -191,42 +185,48 @@ class ClautodServiceLayer(Singleton):
 
             # A session token is required
             if not session_token:
+                self.debug("Denying non-login request to privileged resource from client without a session token")
                 raise Unauthorized("Not logged in")
 
             # Get the privilege level from the session token
             try:
                 given_privilege_level = session_token_dict["privilege_level"]
             except KeyError:
+                self.log.error("Session token without privilege level was somehow renewed. Possible attack.")
                 raise Unauthorized("Privilege level not found in session token")
 
             # Ensure the privilege level is high enough for this handler
             if given_privilege_level < handler_info["privilege"]:
+                self.log.debug(
+                    "Denying request <%s %s> to insufficiently privileged user <%s>",
+                    request.method,
+                    request.path,
+                    session_token_dict["username"]
+                )
                 raise Unauthorized("User has insufficient privilege for this action")
 
         # Extract parameters
         try:
             if request.method == "GET":
                 params = request.args
-            if request.method == "PATCH":
+            elif request.method == "PATCH":
                 params = request.form
-            if request.method == "POST":
+            elif request.method == "POST":
                 params = request.form
-            if request.method == "DELETE":
+            elif request.method == "DELETE":
                 params = request.form
             else:
-                params = None
+                raise MethodNotAllowed()
         except AttributeError:
             raise
 
         # Find the handler
-        facility = {
-            "general": self,
-            "user":    self.user_facility
-        }[str(path_info["facility"])]
-        handler = getattr(facility, str(handler_info["handler"]))
+        handler = handler_info["handler"]
 
         # Call the handler
         try:
+            # noinspection PyCallingNonCallable
+            # PyCharm seems to think handler is a dict. It isn't.
             result = handler(params)
 
         # Only these exceptions should reach Flask
