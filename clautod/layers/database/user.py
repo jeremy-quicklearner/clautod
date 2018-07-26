@@ -57,7 +57,6 @@ class ClautodDatabaseLayerUser(Singleton):
             "<username=%s,privilege_level=%s,password_salt=%s,password_hash=%s>",
             user_dummy.username, user_dummy.privilege_level, user_dummy.password_salt, user_dummy.password_hash
         )
-
         constraints=user_dummy.to_dict()
         if "password" in constraints and constraints["password"]: return []
         constraints = {key:constraints[key] for key in constraints.keys() if constraints[key]}
@@ -74,11 +73,14 @@ class ClautodDatabaseLayerUser(Singleton):
         privilege_levels = [user_record[1] for user_record in user_records]
         password_salts =   [user_record[2] for user_record in user_records]
         password_hashes =  [user_record[3] for user_record in user_records]
-        return [
-            User(username, None, privilege_level, a_password_salt, a_password_hash)
-            for (username, privilege_level, a_password_salt, a_password_hash)
-            in zip(usernames, privilege_levels, password_salts, password_hashes)
+        user_objects = [
+            User(  username, None, privilege_level,  a_password_salt, a_password_hash)
+            for (  username,       privilege_level,  a_password_salt, a_password_hash)
+            in zip(usernames,      privilege_levels,   password_salts,  password_hashes)
         ]
+        for user in user_objects:
+            self.log.verbose("Retrieved user: <%s>", str(user.to_dict()))
+        return user_objects
 
     def get_by_username(self, username):
         """

@@ -10,6 +10,7 @@ import sqlite3
 # Other Python modules
 
 # Clauto Common Python modules
+from clauto_common.util.log import Log
 from clauto_common.util.config import ClautoConfig
 from clauto_common.exceptions import DatabaseStateException
 
@@ -24,12 +25,17 @@ class ClautoDatabaseConnection:
     """
     A connection to the Clauto database (to be used in a WITH-statement)
     """
+    def trace_callback(self, query):
+        self.log.verbose("SQL Query: <%s>", query)
 
-    def __init__(self):
+    def __init__(self, logging_enabled=True):
         self.db_filename = ClautoConfig()["db_dir"] + "/clauto.db"
+        self.log = Log()
+        self.logging_enabled = logging_enabled
 
     def __enter__(self):
         self.connection = sqlite3.connect(self.db_filename)
+        if self.logging_enabled: self.connection.set_trace_callback(self.trace_callback)
         return self
 
     def __exit__(self, a_type, value, traceback):
@@ -49,10 +55,11 @@ class ClautoDatabaseConnection:
         if min_records and max_records and min_records > max_records:
             raise Exception("min_records > max_records in get_records_by_key")
 
+        # Build the query
+        query = 'SELECT * FROM %s;' % table
+
         # Execute the query
-        result = self.connection.execute(
-            'SELECT * from %s;' % table
-        ).fetchall()
+        result = self.connection.execute(query).fetchall()
 
         # Validate the results
         if min_records and len(result) < min_records:
@@ -93,11 +100,11 @@ class ClautoDatabaseConnection:
         # Build the query (with format specifiers in place of values)
         maybe_where = 'WHERE ' if len(constraints) else ''
         sql_constraints = ' AND '.join(['%s = ?' % key for key in constraints.keys()])
-        query = ('SELECT * FROM %s %s' % (table, maybe_where)) + sql_constraints + ';'
 
         # Execute the query
         result = self.connection.execute(
-            query, tuple(constraints[key] for key in constraints.keys())
+            ('SELECT * FROM %s %s' % (table, maybe_where)) + sql_constraints + ';',
+            tuple(constraints[key] for key in constraints.keys())
         ).fetchall()
 
         # Validate the results
@@ -142,11 +149,11 @@ class ClautoDatabaseConnection:
         # Build the query (with format specifiers in place of values)
         maybe_where = 'WHERE ' if len(constraints) else ''
         sql_constraints = ' OR '.join(['%s = ?' % key for key in constraints.keys()])
-        query = ('SELECT * FROM %s %s' % (table, maybe_where)) + sql_constraints + ';'
 
         # Execute the query
         result = self.connection.execute(
-            query, tuple(constraints[key] for key in constraints.keys())
+            ('SELECT * FROM %s %s' % (table, maybe_where)) + sql_constraints + ';',
+            tuple(constraints[key] for key in constraints.keys())
         ).fetchall()
 
         # Validate the results

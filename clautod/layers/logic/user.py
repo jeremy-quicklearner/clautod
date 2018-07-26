@@ -57,9 +57,8 @@ class ClautodLogicLayerUser(Singleton):
         :param filter_user: A dummy user object with instance variables to filter the database records by
         :return: An array of user objects from the database with instance variables conforming to the filter
         """
-        return self.database_layer.user_facility.get(
-            filter_user
-        )
+        self.log.verbose("Retrieving users from database layer with filter object <%s>", str(filter_user.to_dict()))
+        return self.database_layer.user_facility.get(filter_user)
 
     def authenticate(self, given_user):
         """
@@ -71,16 +70,16 @@ class ClautodLogicLayerUser(Singleton):
         """
 
         # Get the real user from the DB
+        self.log.verbose("Finding username <%s> in database", given_user.username)
         try:
-            self.log.verbose("Finding username <%s> in database", given_user.username)
             user_from_db = self.database_layer.user_facility.get_by_username(given_user.username)
         except MissingSubjectException:
-            self.log.verbose("Username <%s> not present in DB. Denying login.", given_user.username)
+            self.log.verbose("Username <%s> not present in DB. Authentication failed.", given_user.username)
             raise
 
         # Recreate the User using the given password, and the salt from the user in the DB
         # This instantiation calculates the password hash in its constructor
-        self.log.verbose("Calculating hash of password given by (supposedly) user <%s>", given_user.username)
+        self.log.verbose("Calculating salted hash of login password")
         user_from_login = User(
             username=given_user.username,
             password=given_user.password,
@@ -89,13 +88,12 @@ class ClautodLogicLayerUser(Singleton):
         )
 
         # Compare the user trying to login with the user from the db
+        self.log.verbose("Comparing salted hash of login password against salted hash from DB")
         if user_from_login.password_hash != user_from_db.password_hash:
-            self.log.verbose("Credentials given for username <%s> failed validation. Denying login.",
+            self.log.verbose("Credentials given for username <%s> failed validation. Authentication failed.",
                              user_from_login.username)
             raise InvalidCredentialsException
 
-        # Build a JWT session token for the user
-        self.log.verbose("Authenticated user <%s>.", given_user.username)
-
         # Success!
+        self.log.verbose("Authenticated user <%s>.", given_user.username)
         return user_from_db

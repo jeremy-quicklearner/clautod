@@ -145,7 +145,7 @@ class ClautodServiceLayerUser(Singleton):
             self.log.warning("Session token contains invalid audience. Possible attack.")
             raise Unauthorized()
         except jwt.exceptions.ExpiredSignatureError:
-            self.log.debug("Session token is expired")
+            self.log.debug("Session token from user <%s> is expired", claims["username"])
             raise Unauthorized("The session is expired")
         except jwt.exceptions.DecodeError:
             for line in (
@@ -155,6 +155,7 @@ class ClautodServiceLayerUser(Singleton):
                 self.log.debug(line)
             raise Unauthorized()
 
+        self.log.verbose("Renewing session for user <%s>", claims["username"])
         return self.build_jwt_session_token(claims["username"], claims["privilege_level"])
 
     # API HANDLERS #####################################################################################################
@@ -169,24 +170,37 @@ class ClautodServiceLayerUser(Singleton):
         """
 
         # Construct a dummy User object with the given username and password
+        self.log.verbose("Login request with username=<%s>", params.get("username"))
         try:
             given_user = UserDummy(
                 username=params.get("username"),
                 password=params.get("password")
             )
         except NoneException as e:
+            self.log.debug("Missing parameter in login request: <%s>", str(e))
             raise BadRequest("Missing parameter: <%s>" % str(e))
         except ValidationException as e:
+            self.log.debug("Invalid parameter in login request: <%s>", str(e))
             raise BadRequest("Invalid parameter value for <%s>" % str(e))
 
         # Authenticate the user
+        self.log.verbose("Authenticating login request from <%s>", given_user.username)
         try:
             found_user = self.logic_layer.user_facility.authenticate(given_user)
+        except NoneException as e:
+            self.log.debug("Login request with null <%s> denied", str(e))
+            raise BadRequest("<%s> cannot be null" % str(e))
+        except ValidationException as e:
+            self.log.debug("Login request with invalid <%s> denied", str(e))
+            raise BadRequest("Invalid <%s>" % str(e))
         except MissingSubjectException:
+            self.log.debug("Login denied to user <%s> not present in DB", given_user.username)
             raise NotFound("User not found")
         except InvalidCredentialsException:
+            self.log.debug("Login denied to user <%s> due to incorrect password", given_user.username)
             raise BadRequest("Incorrect Password")
 
+        self.log.debug("Accepted login request from user <%s>", given_user.username)
         return self.build_jwt_session_token(found_user.username, found_user.privilege_level)[0]
 
     def get(self, params):
@@ -198,23 +212,22 @@ class ClautodServiceLayerUser(Singleton):
         :return: An array of users, in JSON form
         """
 
-        # Extract the filters from params
-        username = params.get("username")
-        privilege_level = params.get("privilege_level")
-
-        # Create the user object to filter by, and fudge the salt
-        # and hash because they were initialized by the User constructor
+        # Create the dummy User object to filter by
+        self.log.verbose(
+            "User get request with username <%s> and privilege level <%s>",
+            params.get("username"),
+            params.get("privilege_level")
+        )
         try:
-            user_filter = UserDummy(username=username, privilege_level=privilege_level)
+            user_filter = UserDummy(username=params.get("username"), privilege_level=params.get("privilege_level"))
         except ValidationException as e:
+            self.log.debug("Invalid parameter in user get request: <%s>", str(e))
             raise BadRequest("Validation failed: " + str(e))
-        user_filter.password_salt = None
-        user_filter.password_hash = None
 
         # Get the users from the database
-        return json.dumps(
-            [user.to_dict() for user in self.logic_layer.user_facility.get(user_filter)]
-        )
+        users_arr = [user.to_dict() for user in self.logic_layer.user_facility.get(user_filter)]
+        self.log.debug("User get request yields users: <%s>", str(users_arr))
+        return json.dumps(users_arr)
 
     def patch(self, params):
         raise NotImplemented()  # TODO

@@ -185,16 +185,24 @@ class ClautodServiceLayer(Singleton):
 
             # A session token is required
             if not session_token:
+                self.debug("Denying non-login request to privileged resource from client without a session token")
                 raise Unauthorized("Not logged in")
 
             # Get the privilege level from the session token
             try:
                 given_privilege_level = session_token_dict["privilege_level"]
             except KeyError:
+                self.log.error("Session token without privilege level was somehow renewed. Possible attack.")
                 raise Unauthorized("Privilege level not found in session token")
 
             # Ensure the privilege level is high enough for this handler
             if given_privilege_level < handler_info["privilege"]:
+                self.log.debug(
+                    "Denying request <%s %s> to insufficiently privileged user <%s>",
+                    request.method,
+                    request.path,
+                    session_token_dict["username"]
+                )
                 raise Unauthorized("User has insufficient privilege for this action")
 
         # Extract parameters

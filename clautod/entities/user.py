@@ -48,7 +48,7 @@ class User:
         """
 
         # Validate password
-        self.password = Validator().validate_password(password, True)
+        password = Validator().validate_password(password, True)
 
         # Hash the password and salt
         password_hash = sha256((str(password) + "+" + password_salt).encode()).hexdigest()
@@ -106,7 +106,7 @@ class UserDummy:
     A Clauto user - dummy class with no behaviour
     """
 
-    def __init__(self, username=None, password=None, privilege_level=0, password_salt=None, password_hash=None):
+    def __init__(self, username=None, password=None, privilege_level=None, password_salt=None, password_hash=None):
         """
         Create a dummy user given some of: a username, password, privilege level, salt, and hash
         :param username: The username
