@@ -257,7 +257,7 @@ class ClautodServiceLayer(Singleton):
         # If this was a login, put the result (a session token) in the cookie and put "Success" in the response
         if request.path == "/api/user/login":
             cookie = "JWT=%s; Path=/api; Secure; Max-Age=%s" % (result, int(self.config["session_lifetime"]))
-            result = "Success"
+            result = "\"Success\""
 
         # Otherwise, send back the existing session token (which is either None or has been renewed above)
         else:

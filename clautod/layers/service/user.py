@@ -19,12 +19,15 @@ import jwt
 
 # Clauto Common Python modules
 from clauto_common.patterns.singleton import Singleton
+from clauto_common.patterns.wildcard import WILDCARD
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
+from clauto_common.util.validation import Validator
 from clauto_common.exceptions import NoneException
 from clauto_common.exceptions import ValidationException
 from clauto_common.exceptions import MissingSubjectException
 from clauto_common.exceptions import InvalidCredentialsException
+from clauto_common.exceptions import IllegalOperationException
 
 # Clautod Python modules
 from layers.logic.general import ClautodLogicLayer
@@ -168,17 +171,24 @@ class ClautodServiceLayerUser(Singleton):
             - (Required) password: The password to login with
         :return: A JWT session token for the user
         """
+        self.log.verbose("Login request")
+        try:
+            params = Validator().validate_params(
+                params,
+                required_param_names=["username", "password"],
+                optional_param_names=[]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying login request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+        self.log.verbose("Params: <{'username':'%s','password':********}>", params.get("username"))
 
         # Construct a dummy User object with the given username and password
-        self.log.verbose("Login request with username=<%s>", params.get("username"))
         try:
             given_user = UserDummy(
                 username=params.get("username"),
                 password=params.get("password")
             )
-        except NoneException as e:
-            self.log.debug("Missing parameter in login request: <%s>", str(e))
-            raise BadRequest("Missing parameter: <%s>" % str(e))
         except ValidationException as e:
             self.log.debug("Invalid parameter in login request: <%s>", str(e))
             raise BadRequest("Invalid parameter value for <%s>" % str(e))
@@ -211,26 +221,79 @@ class ClautodServiceLayerUser(Singleton):
             - (Optional) privilege_level: Privilege level to filter by
         :return: An array of users, in JSON form
         """
+        self.log.verbose("GET /user request")
+        try:
+            params = Validator().validate_params(
+                params,
+                required_param_names=[],
+                optional_param_names=["username", "privilege_level"]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying GET /user request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+        self.log.verbose("Params: <%s>", str(params))
 
         # Create the dummy User object to filter by
-        self.log.verbose(
-            "User get request with username <%s> and privilege level <%s>",
-            params.get("username"),
-            params.get("privilege_level")
-        )
         try:
-            user_filter = UserDummy(username=params.get("username"), privilege_level=params.get("privilege_level"))
+            user_filter = UserDummy(username=params["username"], privilege_level=params["privilege_level"])
         except ValidationException as e:
-            self.log.debug("Invalid parameter in user get request: <%s>", str(e))
+            self.log.debug("Invalid parameter in GET /user request: <%s>", str(e))
             raise BadRequest("Validation failed: " + str(e))
 
         # Get the users from the database
         users_arr = [user.to_dict() for user in self.logic_layer.user_facility.get(user_filter)]
-        self.log.debug("User get request yields users: <%s>", str(users_arr))
+        self.log.debug("GET /user request yields users: <%s>", str(users_arr))
         return json.dumps(users_arr)
 
     def patch(self, params):
-        raise NotImplemented()  # TODO
+        """
+        Edit users in the database
+        :param params: Request parameters
+            - (Optional) username: Username to filter by
+            - (Optional) privilege_level: Privilege level to filter by
+            - (Optional) new_privilege_level: Privilege level to be applied to the users
+        """
+        self.log.verbose("PATCH /user request")
+        try:
+            params = Validator().validate_params(
+                params,
+                required_param_names=[],
+                optional_param_names=["username", "privilege_level", "new_privilege_level", "new_password"]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying PATCH /user request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+        self.log.verbose("Params: <%s>", str(params))
+
+        # Set the users in the database
+        try:
+            filter_user = UserDummy(
+                username=params["username"],
+                privilege_level=params["privilege_level"]
+            )
+            update_user = UserDummy(
+                privilege_level=params["new_privilege_level"],
+                password=params["new_password"]
+            )
+            self.logic_layer.user_facility.set(
+                filter_user=filter_user,
+                update_user=update_user
+            )
+        except ValidationException as e:
+            self.log.debug("Invalid parameter in PATCH /user request: <%s>", str(e))
+            raise BadRequest("Validation failed: " + str(e))
+        except IllegalOperationException as e:
+            self.log.debug("Refusing illegal PATH /use request: <%s>", str(e))
+            raise BadRequest("Illegal operation: <%s>", str(e))
+
+        update_dict = update_user.to_dict()
+        if update_dict["password"] is not WILDCARD: update_dict["password"] = "********"
+        self.log.info("Set fields of users matching <%s> to <%s>",
+                      str(filter_user.to_dict()),
+                      str(update_user.to_dict())
+                      )
+        return json.dumps("Success")
+
 
     def post(self, params):
         raise NotImplemented()  # TODO

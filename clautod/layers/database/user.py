@@ -10,6 +10,7 @@ User facility of database layer for Clautod
 
 # Clauto Common Python modules
 from clauto_common.patterns.singleton import Singleton
+from clauto_common.patterns.wildcard import WILDCARD
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 from clauto_common.exceptions import MissingSubjectException
@@ -46,20 +47,15 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Database layer user facility initialized")
 
-    def get(self, user_dummy):
+    def select(self, user_filter):
         """
         Gets user records from the database, filtered by the fields in a dummy user object
-        :param user_dummy: The dummy user object to filter with
+        :param user_filter: The dummy user object to filter with
         :return: An array of User objects that matched the selection criteria
         """
-        self.log.verbose(
-            "Selecting users from database with selection criteria "
-            "<username=%s,privilege_level=%s,password_salt=%s,password_hash=%s>",
-            user_dummy.username, user_dummy.privilege_level, user_dummy.password_salt, user_dummy.password_hash
-        )
-        constraints=user_dummy.to_dict()
-        if "password" in constraints and constraints["password"]: return []
-        constraints = {key:constraints[key] for key in constraints.keys() if constraints[key]}
+        constraints = user_filter.to_dict()
+        self.log.verbose("Selecting users matching filter <%s>", str(user_filter.to_dict()))
+        if "password" in constraints and constraints["password"] is not WILDCARD: return []
 
         with ClautoDatabaseConnection() as db:
             user_records = db.get_records_by_simple_constraint_intersection(
@@ -82,7 +78,28 @@ class ClautodDatabaseLayerUser(Singleton):
             self.log.verbose("Retrieved user: <%s>", str(user.to_dict()))
         return user_objects
 
-    def get_by_username(self, username):
+
+    def update(self, user_filter, user_updates):
+        """
+        Updates user records in the database, filtered by the fields in a dummy user object
+        :param user_filter: The dummy user object to filter with
+        :param user_updates: A user object (possibly a dummy) containing fields with which to update the user objects
+        """
+        # Don't log the fields because the password salt and password hash may be present
+        constraints = user_filter.to_dict()
+        updates = user_updates.to_dict()
+        self.log.verbose("Updating fields in user matching filter <%s>", constraints)
+
+        # The username is the primary key. Omit it from the updates so that it won't change
+        del updates["username"]
+
+        # Perform the update
+        # Query logging must be disabled as the salt and hash are being updated
+        with ClautoDatabaseConnection(False) as db:
+            db.update_records_by_simple_constraint_intersection("users", constraints, updates)
+
+
+    def select_by_username(self, username):
         """
         Gets a user record from the database
         :param username: The username of the user to get
@@ -91,15 +108,15 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Selecting user from database by username <%s>", username)
         try:
-            return self.get(UserDummy(username, None, None, None))[0]
+            return self.select(UserDummy(username, WILDCARD, WILDCARD, WILDCARD))[0]
         except IndexError:
             raise MissingSubjectException
 
-    def get_all(self):
+    def select_all(self):
         """
         Gets every user record in the database
         :return: An array of user objects for all users in the database
         """
 
         self.log.verbose("Selecting all users from database")
-        return self.get(UserDummy(None, None, None, None))
+        return self.select(UserDummy(WILDCARD, WILDCARD, WILDCARD, WILDCARD))

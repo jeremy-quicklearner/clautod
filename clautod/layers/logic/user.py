@@ -10,15 +10,18 @@ User facility of logic layer for Clautod
 
 # Clauto Common Python modules
 from clauto_common.patterns.singleton import Singleton
+from clauto_common.patterns.wildcard import WILDCARD
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 from clauto_common.access_control import PRIVILEGE_LEVEL_PUBLIC
+from clauto_common.access_control import PRIVILEGE_LEVEL_ADMIN
 from clauto_common.exceptions import MissingSubjectException
 from clauto_common.exceptions import InvalidCredentialsException
+from clauto_common.exceptions import IllegalOperationException
 
 # Clautod Python modules
 from layers.database.general import ClautodDatabaseLayer
-from entities.user import User
+from entities.user import User, UserDummy
 
 
 # CONSTANTS ############################################################################################################
@@ -58,7 +61,48 @@ class ClautodLogicLayerUser(Singleton):
         :return: An array of user objects from the database with instance variables conforming to the filter
         """
         self.log.verbose("Retrieving users from database layer with filter object <%s>", str(filter_user.to_dict()))
-        return self.database_layer.user_facility.get(filter_user)
+        return self.database_layer.user_facility.select(filter_user)
+
+    def set(self, filter_user, update_user):
+        """
+        Updates a user in the database
+        :param filter_user: A dummy object with instance variables to filter the database records to be updated
+        :param update_user: A dummy user object with instance variables to update the database records with. Fields
+        """
+
+        # Don't log the values because one of them may be a password
+        self.log.verbose("Setting fields in users matching filter <%s>", str(filter_user.to_dict()))
+
+        # Don't allow the privilege level of admin to change
+        if filter_user.matches(UserDummy("admin", WILDCARD, 3, WILDCARD, WILDCARD)) and\
+                        update_user.privilege_level is not WILDCARD:
+            self.log.verbose("Refusing to change privilege level of admin")
+            raise IllegalOperationException("Cannot change administrative user's privilege level")
+
+        # Don't allow any user to have their privilege level set to admin
+        if update_user.privilege_level >= PRIVILEGE_LEVEL_ADMIN:
+            self.log.verbose("Refusing to set privilege level to administrative-or-higher level <%s>",
+                             update_user.privilege_level)
+            raise IllegalOperationException("Only the administrative user may have administrative privileges")
+
+        # If the password is being set, use a real User object for the update so that a new salt/hash pair is generated
+        if update_user.password:
+            update_user = User(
+                username=update_user.username,
+                password=update_user.password,
+                privilege_level=update_user.privilege_level
+            )
+        else:
+            update_user = UserDummy(
+                username=update_user.username,
+                privilege_level=update_user.privilege_level,
+                # The password's gone
+                password_salt=update_user.password_salt,
+                password_hash=update_user.password_hash
+            )
+
+        # Perform the update
+        self.database_layer.user_facility.update(filter_user, update_user)
 
     def authenticate(self, given_user):
         """
@@ -72,7 +116,7 @@ class ClautodLogicLayerUser(Singleton):
         # Get the real user from the DB
         self.log.verbose("Finding username <%s> in database", given_user.username)
         try:
-            user_from_db = self.database_layer.user_facility.get_by_username(given_user.username)
+            user_from_db = self.database_layer.user_facility.select_by_username(given_user.username)
         except MissingSubjectException:
             self.log.verbose("Username <%s> not present in DB. Authentication failed.", given_user.username)
             raise

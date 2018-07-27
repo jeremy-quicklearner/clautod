@@ -10,6 +10,7 @@ import sqlite3
 # Other Python modules
 
 # Clauto Common Python modules
+from clauto_common.patterns.wildcard import WILDCARD
 from clauto_common.util.log import Log
 from clauto_common.util.config import ClautoConfig
 from clauto_common.exceptions import DatabaseStateException
@@ -97,6 +98,9 @@ class ClautoDatabaseConnection:
         if min_records and max_records and min_records > max_records:
             raise Exception("min_records > max_records in get_records_by_simple_value_constraints")
 
+        # Remove all wildcards from constraints
+        constraints = {key:constraints[key] for key in constraints.keys() if constraints[key] is not WILDCARD}
+
         # Build the query (with format specifiers in place of values)
         maybe_where = 'WHERE ' if len(constraints) else ''
         sql_constraints = ' AND '.join(['%s = ?' % key for key in constraints.keys()])
@@ -120,6 +124,7 @@ class ClautoDatabaseConnection:
 
         # Success
         return result
+
 
     def get_records_by_simple_constraint_union(
             self,
@@ -146,6 +151,9 @@ class ClautoDatabaseConnection:
         if min_records and max_records and min_records > max_records:
             raise Exception("min_records > max_records in get_records_by_simple_value_constraints")
 
+        # Remove all wildcards from constraints
+        constraints = {key:constraints[key] for key in constraints.keys() if constraints[key] is not WILDCARD}
+
         # Build the query (with format specifiers in place of values)
         maybe_where = 'WHERE ' if len(constraints) else ''
         sql_constraints = ' OR '.join(['%s = ?' % key for key in constraints.keys()])
@@ -170,7 +178,79 @@ class ClautoDatabaseConnection:
         # Success
         return result
 
-    def get_records_by_field(self, table, field, value, min_records=None, max_records=None, num_fields_in_record=None):
+    def update_records_by_simple_constraint_intersection(self, table, constraints, updates):
+        """
+        Update the intersection of all records from a table that satisfy some constraints
+        :param table: The table to select from
+        :param constraints: A dict of the form {key1:value1,key2:value2,...}
+                            where each key/value pair must be found in a record
+                            in the database in order for that record to be
+                            included in the result
+        :param updates: A dict of the form {key1:value1,key2:value2,...}
+                        where the value of keyN in each selected record
+                        will be updated to valueN
+        """
+
+        # If there are no updates, do nothing
+        if len(updates) == 0:
+            return
+
+        # Remove all wildcards from constraints
+        constraints = {key:constraints[key] for key in constraints.keys() if constraints[key] is not WILDCARD}
+
+        # Build the query (with format specifiers in place of values)
+        sql_updates = ', '.join(['%s = ?' % key for key in updates.keys()])
+        maybe_where = 'WHERE ' if len(constraints) else ''
+        sql_constraints = ' AND '.join(['%s = ?' % key for key in constraints.keys()])
+
+        # Execute the query
+        result = self.connection.execute(
+            ('UPDATE %s SET %s %s' % ((table) + (sql_update for sql_update in sql_updates) + (maybe_where))) +
+            sql_constraints + ';',
+            tuple(    updates[key] for key in     updates.keys()) +
+            tuple(constraints[key] for key in constraints.keys())
+        ).fetchall()
+
+        # Success
+        return result
+
+    def update_records_by_simple_constraint_union(self, table, constraints, updates):
+        """
+        Update the union of all records from a table that satisfy some constraints
+        :param table: The table to select from
+        :param constraints: A dict of the form {key1:value1,key2:value2,...}
+                            where each key/value pair must be found in a record
+                            in the database in order for that record to be
+                            included in the result
+        :param updates: A dict of the form {key1:value1,key2:value2,...}
+                        where the value of keyN in each selected record
+                        will be updated to valueN
+        """
+
+        # If there are no updates, do nothing
+        if len(updates) == 0:
+            return
+
+        # Remove all wildcards from constraints
+        constraints = {key:constraints[key] for key in constraints.keys() if constraints[key] is not WILDCARD}
+
+        # Build the query (with format specifiers in place of values)
+        sql_updates = ', '.join(['%s = ?' % key for key in updates.keys()])
+        maybe_where = 'WHERE ' if len(constraints) else ''
+        sql_constraints = ' OR '.join(['%s = ?' % key for key in constraints.keys()])
+
+        # Execute the query
+        result = self.connection.execute(
+            ('UPDATE %s SET %s %s' % ((table) + (sql_update for sql_update in sql_updates) + (maybe_where))) +
+            sql_constraints + ';',
+            tuple(    updates[key] for key in     updates.keys()) +
+            tuple(constraints[key] for key in constraints.keys())
+        ).fetchall()
+
+        # Success
+        return result
+
+    def get_records_by_field(self, table, field, value):
         """
         Select all records from a table, filtered by a field
         :param table: The table to select from
@@ -184,10 +264,19 @@ class ClautoDatabaseConnection:
         return self.get_records_by_simple_constraint_intersection(
             table,
             {field:value},
-            min_records,
-            max_records,
-            num_fields_in_record
         )
+
+    def update_records_by_field(self, table, field, value, updates):
+        """
+        Update all records from a table, filtered by a field
+        :param table: The table to select from
+        :param field: The name of the column to filter by
+        :param value: The value to filter with
+        :param updates: A dict of the form {key1:value1,key2:value2,...}
+                        where the value of keyN in each selected record
+                        will be updated to valueN
+        """
+        self.get_records_by_simple_constraint_intersection(table, {field:value}, updates)
 
     def get_record_by_key(self, table, key_name, key, num_fields_in_record=None, must_exist=False):
         """
