@@ -31,7 +31,7 @@ from clauto_common.exceptions import IllegalOperationException
 
 # Clautod Python modules
 from layers.logic.general import ClautodLogicLayer
-from entities.user import User, UserDummy
+from entities.user import User
 
 
 # CLASSES ##############################################################################################################
@@ -148,7 +148,7 @@ class ClautodServiceLayerUser(Singleton):
             self.log.warning("Session token contains invalid audience. Possible attack.")
             raise Unauthorized()
         except jwt.exceptions.ExpiredSignatureError:
-            self.log.debug("Session token from user <%s> is expired", claims["username"])
+            self.log.debug("Session token is expired")
             raise Unauthorized("The session is expired")
         except jwt.exceptions.DecodeError:
             for line in (
@@ -173,7 +173,7 @@ class ClautodServiceLayerUser(Singleton):
         """
         self.log.verbose("Login request")
         try:
-            params = Validator().validate_params(
+            params = Validator().sanitize_params(
                 params,
                 required_param_names=["username", "password"],
                 optional_param_names=[]
@@ -181,15 +181,16 @@ class ClautodServiceLayerUser(Singleton):
         except ValidationException as e:
             self.log.debug("Denying login request with invalid parameters: <%s>", str(e))
             raise BadRequest(str(e))
-        self.log.verbose("Params: <{'username':'%s','password':********}>", params.get("username"))
+        self.log.verbose("Params: <{'username':'%s','password':'********'}>", params.get("username"))
 
         # Construct a dummy User object with the given username and password
         try:
-            given_user = UserDummy(
+            given_user = User(
                 username=params.get("username"),
                 password=params.get("password")
             )
         except ValidationException as e:
+            # str(e) won't print the password
             self.log.debug("Invalid parameter in login request: <%s>", str(e))
             raise BadRequest("Invalid parameter value for <%s>" % str(e))
 
@@ -223,7 +224,7 @@ class ClautodServiceLayerUser(Singleton):
         """
         self.log.verbose("GET /user request")
         try:
-            params = Validator().validate_params(
+            params = Validator().sanitize_params(
                 params,
                 required_param_names=[],
                 optional_param_names=["username", "privilege_level"]
@@ -235,13 +236,20 @@ class ClautodServiceLayerUser(Singleton):
 
         # Create the dummy User object to filter by
         try:
-            user_filter = UserDummy(username=params["username"], privilege_level=params["privilege_level"])
+            user_filter = User(
+                username=params["username"],
+                privilege_level=params["privilege_level"]
+            )
         except ValidationException as e:
             self.log.debug("Invalid parameter in GET /user request: <%s>", str(e))
             raise BadRequest("Validation failed: " + str(e))
 
         # Get the users from the database
         users_arr = [user.to_dict() for user in self.logic_layer.user_facility.get(user_filter)]
+        for user_dict in users_arr:
+            del user_dict["password"]
+            del user_dict["password_salt"]
+            del user_dict["password_hash"]
         self.log.debug("GET /user request yields users: <%s>", str(users_arr))
         return json.dumps(users_arr)
 
@@ -250,12 +258,13 @@ class ClautodServiceLayerUser(Singleton):
         Edit users in the database
         :param params: Request parameters
             - (Optional) username: Username to filter by
-            - (Optional) privilege_level: Privilege level to filter by
+            - (Optional) privilege_level: privilege_level to filter by
             - (Optional) new_privilege_level: Privilege level to be applied to the users
+            - (Optional) new_password: Password to be applied to the users
         """
         self.log.verbose("PATCH /user request")
         try:
-            params = Validator().validate_params(
+            params = Validator().sanitize_params(
                 params,
                 required_param_names=[],
                 optional_param_names=["username", "privilege_level", "new_privilege_level", "new_password"]
@@ -263,17 +272,20 @@ class ClautodServiceLayerUser(Singleton):
         except ValidationException as e:
             self.log.debug("Denying PATCH /user request with invalid parameters: <%s>", str(e))
             raise BadRequest(str(e))
-        self.log.verbose("Params: <%s>", str(params))
+        passwordless_params = params.copy()
+        if passwordless_params["new_password"] is not WILDCARD:
+            passwordless_params["new_password"] = "********"
+        self.log.verbose("Params: <%s>", str(passwordless_params))
 
         # Set the users in the database
         try:
-            filter_user = UserDummy(
+            filter_user = User(
                 username=params["username"],
                 privilege_level=params["privilege_level"]
             )
-            update_user = UserDummy(
+            update_user = User(
+                password=params["new_password"],
                 privilege_level=params["new_privilege_level"],
-                password=params["new_password"]
             )
             self.logic_layer.user_facility.set(
                 filter_user=filter_user,
@@ -283,17 +295,24 @@ class ClautodServiceLayerUser(Singleton):
             self.log.debug("Invalid parameter in PATCH /user request: <%s>", str(e))
             raise BadRequest("Validation failed: " + str(e))
         except IllegalOperationException as e:
-            self.log.debug("Refusing illegal PATH /use request: <%s>", str(e))
+            self.log.debug("Refusing illegal PATCH /user request: <%s>", str(e))
             raise BadRequest("Illegal operation: <%s>", str(e))
 
+        filter_dict = filter_user.to_dict()
+        del filter_dict["password"]
+        del filter_dict["password_salt"]
+        del filter_dict["password_hash"]
+
         update_dict = update_user.to_dict()
-        if update_dict["password"] is not WILDCARD: update_dict["password"] = "********"
+        if update_dict["password_salt"] is not WILDCARD:
+            update_dict["password"] = "********"
+            del update_dict["password_salt"]
+            del update_dict["password_hash"]
         self.log.info("Set fields of users matching <%s> to <%s>",
-                      str(filter_user.to_dict()),
-                      str(update_user.to_dict())
+                      str(filter_dict),
+                      str(update_dict)
                       )
         return json.dumps("Success")
-
 
     def post(self, params):
         raise NotImplemented()  # TODO

@@ -14,10 +14,13 @@ from clauto_common.patterns.wildcard import WILDCARD
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
 from clauto_common.exceptions import MissingSubjectException
+from clauto_common.exceptions import IllegalOperationException
+from clauto_common.exceptions import DatabaseStateException
+from clauto_common.exceptions import ConstraintViolation
 
 # Clautod Python modules
 from layers.database.util import ClautoDatabaseConnection
-from entities.user import User, UserDummy
+from entities.user import User
 
 
 # CONSTANTS ############################################################################################################
@@ -53,14 +56,15 @@ class ClautodDatabaseLayerUser(Singleton):
         :param user_filter: The dummy user object to filter with
         :return: An array of User objects that matched the selection criteria
         """
-        constraints = user_filter.to_dict()
-        self.log.verbose("Selecting users matching filter <%s>", str(user_filter.to_dict()))
-        if "password" in constraints and constraints["password"] is not WILDCARD: return []
+        conditions = user_filter.to_ordered_dict()
+        # Don't log the conditions because they may contain a password salt or hash
+        if "password" in conditions and conditions["password"] is not WILDCARD:
+            raise IllegalOperationException("Cannot select users by password")
 
         with ClautoDatabaseConnection() as db:
-            user_records = db.get_records_by_simple_constraint_intersection(
+            user_records = db.select_records_by_simple_condition_intersection(
                 table="users",
-                constraints=constraints,
+                conditions=conditions,
                 min_records=None,
                 max_records=None,
                 num_fields_in_record=4
@@ -70,34 +74,40 @@ class ClautodDatabaseLayerUser(Singleton):
         password_salts =   [user_record[2] for user_record in user_records]
         password_hashes =  [user_record[3] for user_record in user_records]
         user_objects = [
-            User(  username, None, privilege_level,  a_password_salt, a_password_hash)
-            for (  username,       privilege_level,  a_password_salt, a_password_hash)
-            in zip(usernames,      privilege_levels,   password_salts,  password_hashes)
+            User(username, WILDCARD, privilege_level,  a_password_salt, a_password_hash)
+            for (username,           privilege_level,  a_password_salt, a_password_hash)
+            in zip(usernames,        privilege_levels,   password_salts,  password_hashes)
         ]
         for user in user_objects:
-            self.log.verbose("Retrieved user: <%s>", str(user.to_dict()))
+            # Ensure each user has a username, privilege level, salt, and hash
+            try:
+                user.verify_username()
+                user.verify_privilege_level()
+                user.verify_salt_hash()
+            except ConstraintViolation as e:
+                raise DatabaseStateException(str(e))
+            self.log.verbose("Retrieved and verified user <%s>", user.username)
         return user_objects
 
-
+    # noinspection PyMethodMayBeStatic
     def update(self, user_filter, user_updates):
         """
         Updates user records in the database, filtered by the fields in a dummy user object
         :param user_filter: The dummy user object to filter with
         :param user_updates: A user object (possibly a dummy) containing fields with which to update the user objects
         """
-        # Don't log the fields because the password salt and password hash may be present
-        constraints = user_filter.to_dict()
-        updates = user_updates.to_dict()
-        self.log.verbose("Updating fields in user matching filter <%s>", constraints)
+        # Don't log the conditions or updates because the password salt and password hash may be present
+        conditions = user_filter.to_ordered_dict()
+        updates = user_updates.to_ordered_dict()
 
-        # The username is the primary key. Omit it from the updates so that it won't change
-        del updates["username"]
+        # Remove the password instance variable from both dicts, as there's no column for it
+        del conditions["password"]
+        del updates["password"]
 
         # Perform the update
-        # Query logging must be disabled as the salt and hash are being updated
+        # Query logging must be disabled as the salt and hash may be in the updates
         with ClautoDatabaseConnection(False) as db:
-            db.update_records_by_simple_constraint_intersection("users", constraints, updates)
-
+            db.update_records_by_simple_condition_intersection("users", conditions, updates)
 
     def select_by_username(self, username):
         """
@@ -108,7 +118,7 @@ class ClautodDatabaseLayerUser(Singleton):
 
         self.log.verbose("Selecting user from database by username <%s>", username)
         try:
-            return self.select(UserDummy(username, WILDCARD, WILDCARD, WILDCARD))[0]
+            return self.select(User(username))[0]
         except IndexError:
             raise MissingSubjectException
 
@@ -119,4 +129,4 @@ class ClautodDatabaseLayerUser(Singleton):
         """
 
         self.log.verbose("Selecting all users from database")
-        return self.select(UserDummy(WILDCARD, WILDCARD, WILDCARD, WILDCARD))
+        return self.select(User())

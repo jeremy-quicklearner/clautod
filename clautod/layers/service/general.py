@@ -185,7 +185,7 @@ class ClautodServiceLayer(Singleton):
 
             # A session token is required
             if not session_token:
-                self.debug("Denying non-login request to privileged resource from client without a session token")
+                self.log.debug("Denying non-login request to privileged resource from client without a session token")
                 raise Unauthorized("Not logged in")
 
             # Get the privilege level from the session token
@@ -284,4 +284,4 @@ class ClautodServiceLayer(Singleton):
         :param params: Parameters from HTTP request
         :return: "pong"
         """
-        return "pong"
+        return "\"pong\""

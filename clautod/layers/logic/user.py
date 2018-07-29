@@ -13,7 +13,6 @@ from clauto_common.patterns.singleton import Singleton
 from clauto_common.patterns.wildcard import WILDCARD
 from clauto_common.util.config import ClautoConfig
 from clauto_common.util.log import Log
-from clauto_common.access_control import PRIVILEGE_LEVEL_PUBLIC
 from clauto_common.access_control import PRIVILEGE_LEVEL_ADMIN
 from clauto_common.exceptions import MissingSubjectException
 from clauto_common.exceptions import InvalidCredentialsException
@@ -21,7 +20,7 @@ from clauto_common.exceptions import IllegalOperationException
 
 # Clautod Python modules
 from layers.database.general import ClautodDatabaseLayer
-from entities.user import User, UserDummy
+from entities.user import User
 
 
 # CONSTANTS ############################################################################################################
@@ -57,10 +56,10 @@ class ClautodLogicLayerUser(Singleton):
     def get(self, filter_user):
         """
         Gets a user from the database
-        :param filter_user: A dummy user object with instance variables to filter the database records by
+        :param filter_user: A user object with instance variables to filter the database records by
         :return: An array of user objects from the database with instance variables conforming to the filter
         """
-        self.log.verbose("Retrieving users from database layer with filter object <%s>", str(filter_user.to_dict()))
+        self.log.verbose("Getting users from database layer")
         return self.database_layer.user_facility.select(filter_user)
 
     def set(self, filter_user, update_user):
@@ -73,33 +72,45 @@ class ClautodLogicLayerUser(Singleton):
         # Don't log the values because one of them may be a password
         self.log.verbose("Setting fields in users matching filter <%s>", str(filter_user.to_dict()))
 
+        # See what users the filter will select
+        selected_users = self.get(filter_user)
+
+        # Check if the filter will select the admin user. The admin user is a special case
+        admin_selected = False
+        for current_user in selected_users:
+            if current_user.username == "admin":
+                admin_selected = True
+                break
+
         # Don't allow the privilege level of admin to change
-        if filter_user.matches(UserDummy("admin", WILDCARD, 3, WILDCARD, WILDCARD)) and\
-                        update_user.privilege_level is not WILDCARD:
+        if (admin_selected and update_user.privilege_level is not WILDCARD and
+                update_user.privilege_level != PRIVILEGE_LEVEL_ADMIN):
             self.log.verbose("Refusing to change privilege level of admin")
             raise IllegalOperationException("Cannot change administrative user's privilege level")
 
-        # Don't allow any user to have their privilege level set to admin
-        if update_user.privilege_level >= PRIVILEGE_LEVEL_ADMIN:
-            self.log.verbose("Refusing to set privilege level to administrative-or-higher level <%s>",
-                             update_user.privilege_level)
+        # Don't allow any user besides admin to have their privilege level set to admin
+        if update_user.privilege_level == PRIVILEGE_LEVEL_ADMIN and (
+                        len(selected_users) > 1 or (selected_users and not admin_selected)
+        ):
+            self.log.verbose(
+                "Refusing to set privilege level of non-admin user(s) to administrative-or-higher level <%s>",
+                update_user.privilege_level
+            )
             raise IllegalOperationException("Only the administrative user may have administrative privileges")
 
-        # If the password is being set, use a real User object for the update so that a new salt/hash pair is generated
-        if update_user.password:
-            update_user = User(
-                username=update_user.username,
-                password=update_user.password,
-                privilege_level=update_user.privilege_level
-            )
-        else:
-            update_user = UserDummy(
-                username=update_user.username,
-                privilege_level=update_user.privilege_level,
-                # The password's gone
-                password_salt=update_user.password_salt,
-                password_hash=update_user.password_hash
-            )
+        # Usernames aren't allowed to change, so always carry over the filter's username - maybe a wildcard
+        update_user.username = filter_user.username
+
+        # If the password is being set, calculate the new salt/hash pair
+        # Also, ensure only one user is having their password changed - users should all have different salts,
+        # so passwords should all be set at different times.
+        if update_user.password is not WILDCARD:
+            if len(selected_users) > 1:
+                self.log.verbose("Refusing to set password for multiple users at once")
+                raise IllegalOperationException("Cannot set password for multiple users at once")
+
+            self.log.verbose("Password change detected. Calculating salted hash.")
+            update_user.constrain_salt_hash()
 
         # Perform the update
         self.database_layer.user_facility.update(filter_user, update_user)
@@ -122,14 +133,13 @@ class ClautodLogicLayerUser(Singleton):
             raise
 
         # Recreate the User using the given password, and the salt from the user in the DB
-        # This instantiation calculates the password hash in its constructor
-        self.log.verbose("Calculating salted hash of login password")
         user_from_login = User(
             username=given_user.username,
             password=given_user.password,
-            privilege_level=PRIVILEGE_LEVEL_PUBLIC, # This parameter doesn't matter but it's required by the User class
             password_salt=user_from_db.password_salt
         )
+        self.log.verbose("Calculating salted hash of login password")
+        user_from_login.constrain_salt_hash()
 
         # Compare the user trying to login with the user from the db
         self.log.verbose("Comparing salted hash of login password against salted hash from DB")
