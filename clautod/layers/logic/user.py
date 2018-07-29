@@ -55,7 +55,7 @@ class ClautodLogicLayerUser(Singleton):
 
     def get(self, filter_user):
         """
-        Gets a user from the database
+        Gets users from the database
         :param filter_user: A user object with instance variables to filter the database records by
         :return: An array of user objects from the database with instance variables conforming to the filter
         """
@@ -64,13 +64,13 @@ class ClautodLogicLayerUser(Singleton):
 
     def set(self, filter_user, update_user):
         """
-        Updates a user in the database
+        Updates  users in the database
         :param filter_user: A dummy object with instance variables to filter the database records to be updated
         :param update_user: A dummy user object with instance variables to update the database records with. Fields
         """
 
-        # Don't log the values because one of them may be a password
-        self.log.verbose("Setting fields in users matching filter <%s>", str(filter_user.to_dict()))
+        # Don't log the values because one of them may be a password, salt, or hash
+        self.log.verbose("Setting fields in users")
 
         # See what users the filter will select
         selected_users = self.get(filter_user)
@@ -114,6 +114,28 @@ class ClautodLogicLayerUser(Singleton):
 
         # Perform the update
         self.database_layer.user_facility.update(filter_user, update_user)
+
+    def delete(self, filter_user):
+        """
+        Deletes users from the database
+        :param filter_user: A user object with instance variables to filter the database records by
+        """
+        self.log.verbose("Deleting users from database layer")
+
+        # See which users will be deleted
+        selected_users = self.get(filter_user)
+
+        # Disallow deleting the admin user
+        for current_user in selected_users:
+            if current_user.username == "admin":
+                self.log.verbose("Refusing to delete the admin user")
+                raise IllegalOperationException("The administrative user may not be deleted")
+
+        # Delete the users
+        self.database_layer.user_facility.delete(filter_user)
+
+        for user in selected_users:
+            self.log.verbose("Deleted user <%s>", user.username)
 
     def authenticate(self, given_user):
         """

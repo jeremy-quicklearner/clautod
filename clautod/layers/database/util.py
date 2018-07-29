@@ -251,6 +251,58 @@ class ClautoDatabaseConnection:
         # Success
         return result
 
+    def delete_records_by_simple_condition_intersection(
+            self,
+            table,
+            conditions,
+    ):
+        """
+        Delete the intersection of all records from a table that satisfy some conditions
+        :param table: The table to delete from
+        :param conditions: A dict of the form {key1:value1,key2:value2,...}
+                            where each key/value pair must be found in a record
+                            in the database in order for that record to be
+                            included in the deletion
+        """
+        # Remove all wildcards from conditions
+        conditions = OrderedDict({key: value for key, value in conditions.items() if value is not WILDCARD}.items())
+
+        # Build the query (with format specifiers in place of values)
+        maybe_where = 'WHERE ' if len(conditions) else ''
+        sql_conditions = ' AND '.join(['%s = ?' % key for key in conditions])
+
+        # Execute the query
+        self.connection.execute(
+            ('DELETE FROM %s %s' % (table, maybe_where)) + sql_conditions + ';',
+            tuple(conditions[key] for key in conditions)
+        ).fetchall()
+
+    def delete_records_by_simple_condition_union(
+            self,
+            table,
+            conditions,
+    ):
+        """
+        Delete the union of all records from a table that satisfy some conditions
+        :param table: The table to delete from
+        :param conditions: A dict of the form {key1:value1,key2:value2,...}
+                            where each key/value pair must be found in a record
+                            in the database in order for that record to be
+                            included in the deletion
+        """
+        # Remove all wildcards from conditions
+        conditions = OrderedDict({key: value for key, value in conditions.items() if value is not WILDCARD}.items())
+
+        # Build the query (with format specifiers in place of values)
+        maybe_where = 'WHERE ' if len(conditions) else ''
+        sql_conditions = ' OR '.join(['%s = ?' % key for key in conditions])
+
+        # Execute the query
+        self.connection.execute(
+            ('DELETE FROM %s %s' % (table, maybe_where)) + sql_conditions + ';',
+            tuple(conditions[key] for key in conditions)
+        ).fetchall()
+
     def select_records_by_field(
             self,
             table,

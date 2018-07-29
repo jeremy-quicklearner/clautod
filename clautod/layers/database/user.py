@@ -52,13 +52,14 @@ class ClautodDatabaseLayerUser(Singleton):
 
     def select(self, user_filter):
         """
-        Gets user records from the database, filtered by the fields in a dummy user object
-        :param user_filter: The dummy user object to filter with
+        Gets user records from the database, filtered by the fields in a user object
+        :param user_filter: The user object to filter with
         :return: An array of User objects that matched the selection criteria
         """
         conditions = user_filter.to_ordered_dict()
         # Don't log the conditions because they may contain a password salt or hash
-        if "password" in conditions and conditions["password"] is not WILDCARD:
+        if conditions["password"] is not WILDCARD:
+            self.log.verbose("Refusing to select users by password")
             raise IllegalOperationException("Cannot select users by password")
 
         with ClautoDatabaseConnection() as db:
@@ -92,7 +93,7 @@ class ClautodDatabaseLayerUser(Singleton):
     # noinspection PyMethodMayBeStatic
     def update(self, user_filter, user_updates):
         """
-        Updates user records in the database, filtered by the fields in a dummy user object
+        Updates user records in the database, filtered by the fields in a user object
         :param user_filter: The dummy user object to filter with
         :param user_updates: A user object (possibly a dummy) containing fields with which to update the user objects
         """
@@ -100,14 +101,34 @@ class ClautodDatabaseLayerUser(Singleton):
         conditions = user_filter.to_ordered_dict()
         updates = user_updates.to_ordered_dict()
 
-        # Remove the password instance variable from both dicts, as there's no column for it
-        del conditions["password"]
-        del updates["password"]
+        # Don't try to filter by password
+        if conditions["password"] is not WILDCARD:
+            self.log.verbose("Refusing to update users by password")
+            raise IllegalOperationException("Cannot update users by password")
 
         # Perform the update
         # Query logging must be disabled as the salt and hash may be in the updates
         with ClautoDatabaseConnection(False) as db:
             db.update_records_by_simple_condition_intersection("users", conditions, updates)
+
+    def delete(self, user_filter):
+        """
+        Deletes user records from the database, filtered by the fields in a user object
+        :param user_filter: The dummy user object to filter with
+        """
+        conditions = user_filter.to_ordered_dict()
+        # Don't log the conditions because they may contain a password salt or hash
+        if "password" in conditions and conditions["password"] is not WILDCARD:
+            self.log.verbose("Refusing to delete users by password")
+            raise IllegalOperationException("Cannot delete users by password")
+
+        with ClautoDatabaseConnection() as db:
+            db.delete_records_by_simple_condition_intersection(
+                table="users",
+                conditions=conditions,
+            )
+
+        self.log.verbose("Deleted user(s)")
 
     def select_by_username(self, username):
         """

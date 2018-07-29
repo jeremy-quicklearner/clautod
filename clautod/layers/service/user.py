@@ -318,4 +318,37 @@ class ClautodServiceLayerUser(Singleton):
         raise NotImplemented()  # TODO
 
     def delete(self, params):
-        raise NotImplemented()  # TODO
+        """
+        Delete users from the database
+        :param params: Request parameters
+            - (Optional) username: Username to filter by
+            - (Optional) privilege_level: privilege_level to filter by
+        """
+        self.log.verbose("DELETE /user request")
+        try:
+            params = Validator().sanitize_params(
+                params,
+                required_param_names=[],
+                optional_param_names=["username", "privilege_level"]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying DELETE /user request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+        self.log.verbose("Params: <%s>", str(params))
+
+        # Set the users in the database
+        try:
+            filter_user = User(
+                username=params["username"],
+                privilege_level=params["privilege_level"]
+            )
+            self.logic_layer.user_facility.delete(filter_user)
+        except ValidationException as e:
+            self.log.debug("Invalid parameter in DELETE /user request: <%s>", str(e))
+            raise BadRequest("Validation failed: " + str(e))
+        except IllegalOperationException as e:
+            self.log.debug("Refusing illegal DELETE /user request: <%s>", str(e))
+            raise BadRequest("Illegal operation: <%s>", str(e))
+
+        self.log.info("Deleted users matching <%s>", str(filter_user.to_dict()))
+        return json.dumps("Success")
