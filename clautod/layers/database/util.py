@@ -251,6 +251,35 @@ class ClautoDatabaseConnection:
         # Success
         return result
 
+    def insert_record(self, table, values):
+        """
+        Insert a record into a table
+        :param table: The table to insert into
+        :param values: A dict of the form {key1:value1,key2:value2,...}
+                        where the value of keyN in the new record
+                        will be initialized to valueN
+        :return: A dict of the form {key1:value1,key2:value2,...}
+                 where the value of keyN in the new record
+                 is valueN, containing all the fields in the new
+                 record including any fields initialized by the DBMS
+                 (such as autoincrementing or default-valued fields)
+        """
+        # Remove all wildcards from values
+        values = OrderedDict({key: value for key, value in values.items() if value is not WILDCARD}.items())
+
+        # Build the query (with format specifiers in place of values)
+        sql_fields = ', '.join(values.keys())
+        sql_values = ', '.join(['?'] * len(values))
+
+        # Execute the query
+        self.connection.execute(
+            'INSERT INTO %s (%s) VALUES (%s);' % (table, sql_fields, sql_values),
+            tuple(value for key, value in values.items())
+        )
+
+        # Success
+        return self.select_records_by_simple_condition_intersection(table, values, 0, 1, None)
+
     def delete_records_by_simple_condition_intersection(
             self,
             table,
@@ -342,6 +371,15 @@ class ClautoDatabaseConnection:
         """
         self.select_records_by_simple_condition_intersection(table, {field: value}, updates)
 
+    def delete_records_by_field(self, table, field, value):
+        """
+        Delete all records from a table, filtered by a field
+        :param table: The table to select from
+        :param field: The name of the column to filter by
+        :param value: The value to filter with
+        """
+        self.delete_records_by_simple_condition_intersection(table, {field: value})
+
     def select_record_by_key(self, table, key_name, key, num_fields_in_record=None, must_exist=False):
         """
         Get a record from a table which is uniquely identified by a key
@@ -354,7 +392,4 @@ class ClautoDatabaseConnection:
         """
 
         records = self.select_records_by_field(table, key_name, key, int(must_exist), 1, num_fields_in_record)
-        if len(records) == 0:
-            return None
-        else:
-            return records[0]
+        return records if records else None

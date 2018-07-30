@@ -110,10 +110,39 @@ class ClautodLogicLayerUser(Singleton):
                 raise IllegalOperationException("Cannot set password for multiple users at once")
 
             self.log.verbose("Password change detected. Calculating salted hash.")
-            update_user.constrain_salt_hash()
+            update_user.constrain_hash()
 
         # Perform the update
         self.database_layer.user_facility.update(filter_user, update_user)
+
+    def add(self, user_new):
+        """
+        Adds a new user to the database
+        :param user_new: The user object to add
+        """
+
+        # Don't log all the fields because there must be a password
+        self.log.verbose("Adding user <%s>", user_new.username)
+
+        # Make sure the username and privilege level are sanitary
+        user_new.verify_username()
+        user_new.verify_privilege_level()
+
+        # Make sure the user's salt and hash are set, and their password isn't
+        user_new.constrain_hash()
+
+        # Check for username collision
+        try:
+            self.database_layer.user_facility.select_by_username(user_new.username)
+            self.log.verbose(
+                "Username collision detected. Refusing to add another user with username <%s>", user_new.username
+            )
+            raise IllegalOperationException("Username <%s> already exists" % user_new.username)
+        except MissingSubjectException:
+            pass
+
+        # Perform the insertion
+        self.database_layer.user_facility.insert(user_new)
 
     def delete(self, filter_user):
         """
@@ -161,7 +190,7 @@ class ClautodLogicLayerUser(Singleton):
             password_salt=user_from_db.password_salt
         )
         self.log.verbose("Calculating salted hash of login password")
-        user_from_login.constrain_salt_hash()
+        user_from_login.constrain_hash()
 
         # Compare the user trying to login with the user from the db
         self.log.verbose("Comparing salted hash of login password against salted hash from DB")

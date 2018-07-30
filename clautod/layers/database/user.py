@@ -84,7 +84,8 @@ class ClautodDatabaseLayerUser(Singleton):
             try:
                 user.verify_username()
                 user.verify_privilege_level()
-                user.verify_salt_hash()
+                user.verify_salt()
+                user.verify_hash()
             except ConstraintViolation as e:
                 raise DatabaseStateException(str(e))
             self.log.verbose("Retrieved and verified user <%s>", user.username)
@@ -94,8 +95,8 @@ class ClautodDatabaseLayerUser(Singleton):
     def update(self, user_filter, user_updates):
         """
         Updates user records in the database, filtered by the fields in a user object
-        :param user_filter: The dummy user object to filter with
-        :param user_updates: A user object (possibly a dummy) containing fields with which to update the user objects
+        :param user_filter: The user object to filter with
+        :param user_updates: A user object containing fields with which to update the user records
         """
         # Don't log the conditions or updates because the password salt and password hash may be present
         conditions = user_filter.to_ordered_dict()
@@ -110,6 +111,23 @@ class ClautodDatabaseLayerUser(Singleton):
         # Query logging must be disabled as the salt and hash may be in the updates
         with ClautoDatabaseConnection(False) as db:
             db.update_records_by_simple_condition_intersection("users", conditions, updates)
+
+    def insert(self, user_new):
+        """
+        Adds a new user to the database
+        :param user_new: The user object to add
+        """
+        # Don't log the fields because they must contain a salt and hash
+        fields = user_new.to_ordered_dict()
+
+        # Don't try to populate the password. There's no column for it
+        if fields["password"] is not WILDCARD:
+            self.log.verbose("Refusing to insert user with explicit password")
+            raise IllegalOperationException("Cannot insert user with explicit password")
+
+        # Perform the insertion
+        with ClautoDatabaseConnection(False) as db:
+            db.insert_record("users", fields)
 
     def delete(self, user_filter):
         """

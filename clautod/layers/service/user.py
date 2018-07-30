@@ -296,7 +296,7 @@ class ClautodServiceLayerUser(Singleton):
             raise BadRequest("Validation failed: " + str(e))
         except IllegalOperationException as e:
             self.log.debug("Refusing illegal PATCH /user request: <%s>", str(e))
-            raise BadRequest("Illegal operation: <%s>", str(e))
+            raise BadRequest("Illegal operation: " + str(e))
 
         filter_dict = filter_user.to_dict()
         del filter_dict["password"]
@@ -315,7 +315,50 @@ class ClautodServiceLayerUser(Singleton):
         return json.dumps("Success")
 
     def post(self, params):
-        raise NotImplemented()  # TODO
+        """
+        Add a user to the database
+        :param params: Request parameters
+            - (Required) new_username: Username for the new user
+            - (Required) new_privilege_level: Privilege level for the new user
+            - (Required) new_password: Password for the new user
+        """
+        self.log.verbose("POST /user request")
+        try:
+            params = Validator().sanitize_params(
+                params,
+                required_param_names=["new_username", "new_privilege_level", "new_password"],
+                optional_param_names=[]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying POST /user request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+        passwordless_params = params.copy()
+        if passwordless_params["new_password"] is not WILDCARD:
+            passwordless_params["new_password"] = "********"
+        self.log.verbose("Params: <%s>", str(passwordless_params))
+
+        # Add the user to the database
+        try:
+            user_new = User(
+                username=params["new_username"],
+                password=params["new_password"],
+                privilege_level=params["new_privilege_level"],
+            )
+            self.logic_layer.user_facility.add(
+                user_new=user_new
+            )
+        except ValidationException as e:
+            self.log.debug("Invalid parameter in POST /user request: <%s>", str(e))
+            raise BadRequest("Validation failed: " + str(e))
+        except IllegalOperationException as e:
+            self.log.debug("Refusing illegal POST /user request: <%s>", str(e))
+            raise BadRequest("Illegal operation: " + str(e))
+
+        self.log.info("Added user <%s> with privilege level <%s>",
+                      user_new.username,
+                      user_new.privilege_level
+                      )
+        return json.dumps("Success")
 
     def delete(self, params):
         """
@@ -348,7 +391,7 @@ class ClautodServiceLayerUser(Singleton):
             raise BadRequest("Validation failed: " + str(e))
         except IllegalOperationException as e:
             self.log.debug("Refusing illegal DELETE /user request: <%s>", str(e))
-            raise BadRequest("Illegal operation: <%s>", str(e))
+            raise BadRequest("Illegal operation: " + str(e))
 
         self.log.info("Deleted users matching <%s>", str(filter_user.to_dict()))
         return json.dumps("Success")

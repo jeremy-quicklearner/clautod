@@ -65,44 +65,54 @@ class User:
         self.log.verbose("Verified privilege level")
 
     def constrain_privilege_level(self):
-        # Dependencies
-        Validator().verify_not_wildcard(self.username, "username")
+        try:
+            self.verify_privilege_level()
+        except ConstraintViolation:
+            self.verify_username()
 
-        # If this is the admin user, it must have admin privilege
-        if self.username == "admin":
-            self.log.verbose("Constraining privilege level to administrative")
-            self.privilege_level = PRIVILEGE_LEVEL_ADMIN
+            # If this is the admin user, it must have admin privilege
+            if self.username == "admin":
+                self.log.verbose("Constraining privilege level to administrative")
+                self.privilege_level = PRIVILEGE_LEVEL_ADMIN
 
-        # If this isn't the admin user, it can't have admin privilege
-        elif self.privilege_level == PRIVILEGE_LEVEL_ADMIN:
-            self.log.verbose("Constraining privilege level to non-administrative")
-            self.privilege_level = PRIVILEGE_LEVEL_ADMIN - 1
+            # If this isn't the admin user, it can't have admin privilege
+            elif self.privilege_level == PRIVILEGE_LEVEL_ADMIN:
+                self.log.verbose("Constraining privilege level to non-administrative")
+                self.privilege_level = PRIVILEGE_LEVEL_ADMIN - 1
 
-        self.log.verbose("Verified privilege level")
+            self.log.verbose("Verified privilege level")
 
     def verify_password(self):
         Validator().verify_not_wildcard(self.password, "password")
-        Validator().verify_is_wildcard(self.password_salt, "password_salt")
         Validator().verify_is_wildcard(self.password_hash, "password_hash")
 
-    def verify_salt_hash(self):
-        Validator().verify_is_wildcard(self.password, "password")
+    def verify_salt(self):
         Validator().verify_not_wildcard(self.password_salt, "password_salt")
-        Validator().verify_not_wildcard(self.password_hash, "password_hash")
 
-    def constrain_salt_hash(self):
-        # Make sure there's a password
-        Validator().verify_not_wildcard(self.password, "password")
-
-        # If there's no password hash already, create one based on the current time
-        if self.password_salt is WILDCARD:
+    def constrain_salt(self):
+        try:
+            self.verify_salt()
+        except ConstraintViolation:
             self.password_salt = int(datetime.utcnow().timestamp() * (10 ** 6))
 
-        # Calculate the password hash
-        self.password_hash = sha256((self.password + "+" + str(self.password_salt)).encode()).hexdigest()
+    def verify_hash(self):
+        Validator().verify_is_wildcard(self.password, "password")
+        self.verify_salt()
+        Validator().verify_not_wildcard(self.password_hash, "password_hash")
 
-        # Now that there's a password salt and hash, the password isn't needed
-        self.password = WILDCARD
+    def constrain_hash(self):
+        try:
+            self.verify_hash()
+        except ConstraintViolation:
+            # Make sure there's a password and salt
+            self.verify_password()
+            self.constrain_salt()
+
+            # Calculate the password hash
+            self.password_hash = sha256((self.password + "+" + str(self.password_salt)).encode()).hexdigest()
+
+            # Now that there's a password salt and hash, the password isn't needed
+            self.password = WILDCARD
 
     def to_dict(self):
         """
