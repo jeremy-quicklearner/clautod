@@ -163,12 +163,13 @@ class ClautodServiceLayerUser(Singleton):
 
     # API HANDLERS #####################################################################################################
 
-    def login(self, params):
+    def login(self, params, username):
         """
         Authenticate a login request and respond with a session token
         :param params: Request parameters
             - (Required) username: The username to login with
             - (Required) password: The password to login with
+        :param username: Username of the user who sent the request
         :return: A JWT session token for the user
         """
         self.log.verbose("Login request")
@@ -214,12 +215,13 @@ class ClautodServiceLayerUser(Singleton):
         self.log.debug("Accepted login request from user <%s>", given_user.username)
         return self.build_jwt_session_token(found_user.username, found_user.privilege_level)[0]
 
-    def get(self, params):
+    def get(self, params, username):
         """
         Get users from the database
         :param params: Request parameters
             - (Optional) username: Username to filter by
             - (Optional) privilege_level: Privilege level to filter by
+        :param username: Username of the user who sent the request
         :return: An array of users, in JSON form
         """
         self.log.verbose("GET /user request")
@@ -234,7 +236,7 @@ class ClautodServiceLayerUser(Singleton):
             raise BadRequest(str(e))
         self.log.verbose("Params: <%s>", str(params))
 
-        # Create the dummy User object to filter by
+        # Create the User object to filter by
         try:
             user_filter = User(
                 username=params["username"],
@@ -253,7 +255,7 @@ class ClautodServiceLayerUser(Singleton):
         self.log.debug("GET /user request yields users: <%s>", str(users_arr))
         return json.dumps(users_arr)
 
-    def patch(self, params):
+    def patch(self, params, username):
         """
         Edit users in the database
         :param params: Request parameters
@@ -261,6 +263,7 @@ class ClautodServiceLayerUser(Singleton):
             - (Optional) privilege_level: privilege_level to filter by
             - (Optional) new_privilege_level: Privilege level to be applied to the users
             - (Optional) new_password: Password to be applied to the users
+        :param username: Username of the user who sent the request
         """
         self.log.verbose("PATCH /user request")
         try:
@@ -314,13 +317,14 @@ class ClautodServiceLayerUser(Singleton):
                       )
         return json.dumps("Success")
 
-    def post(self, params):
+    def post(self, params, username):
         """
         Add a user to the database
         :param params: Request parameters
             - (Required) new_username: Username for the new user
             - (Required) new_privilege_level: Privilege level for the new user
             - (Required) new_password: Password for the new user
+        :param username: Username of the user who sent the request
         """
         self.log.verbose("POST /user request")
         try:
@@ -360,12 +364,13 @@ class ClautodServiceLayerUser(Singleton):
                       )
         return json.dumps("Success")
 
-    def delete(self, params):
+    def delete(self, params, username):
         """
         Delete users from the database
         :param params: Request parameters
             - (Optional) username: Username to filter by
             - (Optional) privilege_level: privilege_level to filter by
+        :param username: Username of the user who sent the request
         """
         self.log.verbose("DELETE /user request")
         try:
@@ -394,4 +399,92 @@ class ClautodServiceLayerUser(Singleton):
             raise BadRequest("Illegal operation: " + str(e))
 
         self.log.info("Deleted users matching <%s>", str(filter_user.to_dict()))
+        return json.dumps("Success")
+
+    def get_me(self, params, username):
+        """
+        Get information about the user who sent the request
+        :param params: Request parameters
+        :return: A user, in JSON form
+        """
+        self.log.verbose("GET /user/me request")
+        try:
+            params = Validator().sanitize_params(
+                params,
+                required_param_names=[],
+                optional_param_names=[]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying GET /user/me request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+
+        # Get the user from the database
+        try:
+            user_dict = self.logic_layer.user_facility.get_by_username(username).to_dict()
+        except MissingSubjectException:
+            self.log.warning("User <%s> is logged in but not present in database. Possible attack.", username)
+            raise NotFound("User not found")
+
+        # Remove sensitive information from the result
+        del user_dict["password"]
+        del user_dict["password_salt"]
+        del user_dict["password_hash"]
+
+        self.log.debug("GET /user/me request yields user: <%s>", str(user_dict))
+        return json.dumps(user_dict)
+
+    def patch_me_password(self, params, username):
+        """
+        Set the password of the requesting user
+        :param params: Request parameters
+            - (Required) password: The user's current password
+            - (Requires) new_password: The new password for the user
+        :param username: Username of the user who sent the request
+        """
+        self.log.verbose("PATCH /user/me/password request")
+        try:
+            params = Validator().sanitize_params(
+                params,
+                required_param_names=["password", "new_password"],
+                optional_param_names=[]
+            )
+        except ValidationException as e:
+            self.log.debug("Denying PATCH /user/me/password request with invalid parameters: <%s>", str(e))
+            raise BadRequest(str(e))
+        # Don't log the params because they're both passwords
+
+        # Check that the supplied current password is correct
+        try:
+            self.logic_layer.user_facility.authenticate(User(username, params["password"]))
+        except NoneException as e:
+            self.log.debug("Denying PATCH /user/me/password request with null <%s>", str(e))
+            raise BadRequest("<%s> cannot be null" % str(e))
+        except ValidationException as e:
+            self.log.debug("Denying PATCH /usr/me/password request with invalid <%s>", str(e))
+            raise BadRequest("Invalid <%s>" % str(e))
+        except MissingSubjectException:
+            self.log.debug(
+                "User <%s> attempted PATCH /usr/me/password while logged in but not present in database. " +
+                "Possible attack.",
+                username
+            )
+            raise NotFound("User not found")
+        except InvalidCredentialsException:
+            self.log.debug(
+                "Denying PATCH /user/me/password to user <%s> due to incorrect current password",
+                username
+            )
+            raise BadRequest("Incorrect Password")
+
+        # Set the password
+        try:
+            self.logic_layer.user_facility.set(User(username=username), User(password=params["new_password"]))
+        except ValidationException as e:
+            self.log.debug("Invalid parameter in PATCH /user/me/password request: <%s>", str(e))
+            raise BadRequest("Validation failed: " + str(e))
+        except IllegalOperationException as e:
+            self.log.debug("Refusing illegal PATCH /user/me/password request: <%s>", str(e))
+            raise BadRequest("Illegal operation: " + str(e))
+
+        self.log.info("User <%s> changed their password", username)
         return json.dumps("Success")

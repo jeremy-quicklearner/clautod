@@ -166,6 +166,17 @@ class ClautodLogicLayerUser(Singleton):
         for user in selected_users:
             self.log.verbose("Deleted user <%s>", user.username)
 
+    def get_by_username(self, username):
+        """
+        Gets a user by their username
+        :param username: The username to get by
+        :return: The user
+        """
+        self.log.verbose("Getting user by username <%s>", username)
+        user = self.database_layer.user_facility.select_by_username(username)
+        self.log.verbose("Got user <%s> by username", username)
+        return user
+
     def authenticate(self, given_user):
         """
         Given a User object containing a username and password,

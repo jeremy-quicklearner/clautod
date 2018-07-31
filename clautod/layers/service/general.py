@@ -128,6 +128,22 @@ class ClautodServiceLayer(Singleton):
                         "privilege": PRIVILEGE_LEVEL_ADMIN
                     }
                 }
+            },
+            "/api/user/me": {
+                "method_to_handler_info": {
+                    "GET": {
+                        "handler": self.user_facility.get_me,
+                        "privilege": PRIVILEGE_LEVEL_READ
+                    }
+                }
+            },
+            "/api/user/me/password": {
+                "method_to_handler_info": {
+                    "PATCH": {
+                        "handler": self.user_facility.patch_me_password,
+                        "privilege": PRIVILEGE_LEVEL_READ
+                    }
+                }
             }
         }
 
@@ -223,11 +239,17 @@ class ClautodServiceLayer(Singleton):
         # Find the handler
         handler = handler_info["handler"]
 
+        # Initialize the username to pass to the handler
+        if session_token_dict and "username" in session_token_dict:
+            username = session_token_dict["username"]
+        else:
+            username = ""
+
         # Call the handler
         try:
             # noinspection PyCallingNonCallable
             # PyCharm seems to think handler is a dict. It isn't.
-            result = handler(params)
+            result = handler(params, username)
 
         # Only these exceptions should reach Flask
         except BadRequest:
@@ -278,7 +300,7 @@ class ClautodServiceLayer(Singleton):
     # API HANDLERS THAT DON'T FIT IN ANY FACILITY ######################################################################
 
     # noinspection PyMethodMayBeStatic
-    def ping(self, params):
+    def ping(self, params, username):
         """
         Always returns "pong"
         :param params: Parameters from HTTP request
