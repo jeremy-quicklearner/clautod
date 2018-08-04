@@ -9,6 +9,8 @@ Entry point for clautod
 # Other Python modules
 from flask import Flask
 from flask import request
+from flask import send_from_directory
+from flask import redirect
 from gevent.pywsgi import WSGIServer
 
 
@@ -35,7 +37,15 @@ def api(path):
     return ClautodServiceLayer().handle_api_request(request)
 
 
-# Clauto Web GUI TODO: Make a route for the web gui
+# Clauto Web GUI
+@clauto_flask_app.route("/<path:path>", methods=['GET'])
+def web_gui(path):
+    return send_from_directory("/usr/share/clauto/clautod/web/", path)
+
+# Redirect to index.html
+@clauto_flask_app.route("/", methods=["GET"])
+def index_redirect():
+    return redirect("/index.html")
 
 # CLASSES ##############################################################################################################
 class ClautoFlaskApp(Singleton):
