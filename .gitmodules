@@ -1,0 +1,3 @@
+[submodule "clautod/clauto-web"]
+	path = clautod/clauto-web
+	url = https://github.com/jeremy-quicklearner/clauto-web.git
