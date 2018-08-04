@@ -1,2 +1,12 @@
-# The clautod source
-clautod/* /usr/share/clauto/clautod
+# Migration for config and DB
+clautod/cfgmig/* /usr/share/clauto/clautod/cfgmig
+clautod/db/* /usr/share/clauto/clautod/dbmig
+
+# clautod source
+clautod/entities/* /usr/share/clauto/clautod/entities
+clautod/layers/* /usr/share/clauto/clautod/layers
+clautod/server/* /usr/share/clauto/clautod/server
+clautod/clautod.py /usr/share/clauto/clautod
+
+# Web app
+clautod/web-gen /usr/share/clauto/clautod/web

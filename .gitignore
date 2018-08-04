@@ -14,3 +14,6 @@ debian/files
 
 # IDE stuff
 .idea
+
+# The generated web app
+clautod/web-gen

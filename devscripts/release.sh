@@ -17,7 +17,17 @@ if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ; then
     exit 1
 fi
 
-echo "[release] Releasing clautod v"$1"..."
+# Build clauto-web
+echo "[release] Building clauto-web..."
+cd clautod/clauto-web
+vue-cli-service build
+if [ $? -ne 0 ] ; then
+    echo "[clautod deplocal] Web build failed. Not deploying."
+    exit 1
+fi
+cd ../..
+
+echo "[release] clauto-web built. Releasing clautod v"$1"..."
 echo "[release] Preparing package tree..."
 
 # Populate README files in debian directory
