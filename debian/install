@@ -9,4 +9,4 @@ clautod/server/* /usr/share/clauto/clautod/server
 clautod/clautod.py /usr/share/clauto/clautod
 
 # Web app
-clautod/web-gen/* /usr/share/clauto/clautod/web
+clautod/web/* /usr/share/clauto/clautod/web

@@ -20,7 +20,7 @@ fi
 # Build clauto-web
 echo "[release] Building clauto-web..."
 cd clautod/clauto-web
-vue-cli-service build
+npm run build
 if [ $? -ne 0 ] ; then
     echo "[clautod deplocal] Web build failed. Not deploying."
     exit 1

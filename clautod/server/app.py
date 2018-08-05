@@ -10,8 +10,9 @@ Entry point for clautod
 from flask import Flask
 from flask import request
 from flask import send_from_directory
-from flask import redirect
+from flask import send_file
 from gevent.pywsgi import WSGIServer
+from werkzeug.exceptions import NotFound
 
 
 # Clauto Common Python modules
@@ -30,22 +31,29 @@ clauto_flask_app = Flask("Clauto Server")
 
 # ROUTES ###############################################################################################################
 
-# Clauto API
+# Paths beginning with /api are treated as Clauto API endpoints
 # noinspection PyUnusedLocal
 @clauto_flask_app.route("/api/<path:path>", methods=['GET', 'PATCH', 'POST', 'DELETE'])
-def api(path):
+def api_path(path):
     return ClautodServiceLayer().handle_api_request(request)
 
+# Paths beginning with /static send back assets from /static
+@clauto_flask_app.route("/static/<path:path>", methods=['GET'])
+def static_path(path):
+    return send_from_directory("/usr/share/clauto/clautod/web/static", path)
 
-# Clauto Web GUI
+# Anything else
+@clauto_flask_app.route("/", defaults={'path':''}, methods=['GET'])
 @clauto_flask_app.route("/<path:path>", methods=['GET'])
-def web_gui(path):
-    return send_from_directory("/usr/share/clauto/clautod/web/", path)
+def catch_all_path(path):
+    # Look for static assets
+    try:
+        return static_path(path)
 
-# Redirect to index.html
-@clauto_flask_app.route("/", methods=["GET"])
-def index_redirect():
-    return redirect("/index.html")
+    # If there are no static assets that match, send index.html
+    except NotFound:
+        return send_file("/usr/share/clauto/clautod/web/index.html")
+
 
 # CLASSES ##############################################################################################################
 class ClautoFlaskApp(Singleton):
