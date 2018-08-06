@@ -29,7 +29,13 @@ cd ../clauto-common
 cd ../clautod
 
 # Copy the clautod source from the repo to the clautod installation directory
-sudo cp -r clautod/* /usr/share/clauto/clautod
+sudo cp -r clautod/cfgmig /usr/share/clauto/clautod
+sudo cp -r clautod/dbmig /usr/share/clauto/clautod
+sudo cp -r clautod/entities /usr/share/clauto/clautod
+sudo cp -r clautod/layers /usr/share/clauto/clautod
+sudo cp -r clautod/server /usr/share/clauto/clautod
+sudo cp -r clautod/web /usr/share/clauto/clautod
+sudo cp clautod/clautod.py /usr/share/clauto/clautod
 
 # There may have been config changes, so enact config migration
 if ! sudo /usr/share/clauto/clauto-common/sh/cfgmig.sh clautod ; then
