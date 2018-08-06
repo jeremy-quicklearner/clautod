@@ -16,4 +16,4 @@ debian/files
 .idea
 
 # The generated web app
-clautod/web-gen
+clautod/web

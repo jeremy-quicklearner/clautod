@@ -32,7 +32,6 @@ clauto_flask_app = Flask("Clauto Server")
 # ROUTES ###############################################################################################################
 
 # Paths beginning with /api are treated as Clauto API endpoints
-# noinspection PyUnusedLocal
 @clauto_flask_app.route("/api/<path:path>", methods=['GET', 'PATCH', 'POST', 'DELETE'])
 def api_path(path):
     return ClautodServiceLayer().handle_api_request(request)

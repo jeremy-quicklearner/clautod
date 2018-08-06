@@ -6,6 +6,7 @@ General service layer for Clautod
 
 # Standard Python modules
 import traceback
+from time import sleep
 
 # Other Python modules
 from werkzeug.exceptions import BadRequest
@@ -70,80 +71,34 @@ class ClautodServiceLayer(Singleton):
         # layer
         self.url_path_to_path_info = {
             "/api/ping_public": {
-                "method_to_handler_info": {
-                    "GET": {
-                        "handler": self.ping,
-                        "privilege": PRIVILEGE_LEVEL_PUBLIC
-                    }
-                }
+                "GET": {"handler": self.ping, "privilege": PRIVILEGE_LEVEL_PUBLIC}
             },
             "/api/ping_read": {
-                "method_to_handler_info": {
-                    "GET": {
-                        "handler": self.ping,
-                        "privilege": PRIVILEGE_LEVEL_READ
-                    }
-                }
+                "GET": {"handler": self.ping, "privilege": PRIVILEGE_LEVEL_READ}
             },
             "/api/ping_write": {
-                "method_to_handler_info": {
-                    "GET": {
-                        "handler": self.ping,
-                        "privilege": PRIVILEGE_LEVEL_WRITE
-                    }
-                }
+                "GET": {"handler": self.ping, "privilege": PRIVILEGE_LEVEL_WRITE}
             },
             "/api/ping_admin": {
-                "method_to_handler_info": {
-                    "GET": {
-                        "handler": self.ping,
-                        "privilege": PRIVILEGE_LEVEL_ADMIN
-                    }
-                }
+                "GET": {"handler": self.ping, "privilege": PRIVILEGE_LEVEL_ADMIN}
+            },
+            "/api/ping_slow": {
+                "GET": {"handler": self.ping_slow, "privilege": PRIVILEGE_LEVEL_PUBLIC}
             },
             "/api/user/login": {
-                "method_to_handler_info": {
-                    "POST": {
-                        "handler": self.user_facility.login,
-                        "privilege": PRIVILEGE_LEVEL_PUBLIC
-                    }
-                }
+                "POST": {"handler": self.user_facility.login, "privilege": PRIVILEGE_LEVEL_PUBLIC}
             },
             "/api/user": {
-                "method_to_handler_info": {
-                    "GET": {
-                        "handler": self.user_facility.get,
-                        "privilege": PRIVILEGE_LEVEL_READ
-                    },
-                    "PATCH": {
-                        "handler": self.user_facility.patch,
-                        "privilege": PRIVILEGE_LEVEL_ADMIN
-                    },
-                    "POST": {
-                        "handler": self.user_facility.post,
-                        "privilege": PRIVILEGE_LEVEL_ADMIN
-                    },
-                    "DELETE": {
-                        "handler": self.user_facility.delete,
-                        "privilege": PRIVILEGE_LEVEL_ADMIN
-                    }
-                }
+                "GET": {"handler": self.user_facility.get, "privilege": PRIVILEGE_LEVEL_READ},
+                "PATCH": {"handler": self.user_facility.patch, "privilege": PRIVILEGE_LEVEL_ADMIN},
+                "POST": {"handler": self.user_facility.post, "privilege": PRIVILEGE_LEVEL_ADMIN},
+                "DELETE": {"handler": self.user_facility.delete, "privilege": PRIVILEGE_LEVEL_ADMIN}
             },
             "/api/user/me": {
-                "method_to_handler_info": {
-                    "GET": {
-                        "handler": self.user_facility.get_me,
-                        "privilege": PRIVILEGE_LEVEL_READ
-                    }
-                }
+                "GET": {"handler": self.user_facility.get_me, "privilege": PRIVILEGE_LEVEL_READ}
             },
             "/api/user/me/password": {
-                "method_to_handler_info": {
-                    "PATCH": {
-                        "handler": self.user_facility.patch_me_password,
-                        "privilege": PRIVILEGE_LEVEL_READ
-                    }
-                }
+                "PATCH": {"handler": self.user_facility.patch_me_password, "privilege": PRIVILEGE_LEVEL_READ}
             }
         }
 
@@ -181,12 +136,12 @@ class ClautodServiceLayer(Singleton):
             raise NotFound("No Clauto API method <%s>" % request.path)
 
         # Check for disallowed HTTP method
-        if method not in path_info["method_to_handler_info"]:
+        if method not in path_info:
             self.log.debug("HTTP <%s> not permitted for path <%s>", method, path)
             raise MethodNotAllowed("HTTP <%s> not permitted for path <%s>" % (method, path))
 
         # Determine handler and required privilege level
-        handler_info = path_info["method_to_handler_info"][method]
+        handler_info = path_info[method]
 
         # Check for unimplemented handler
         if handler_info["handler"] is None:
@@ -306,4 +261,14 @@ class ClautodServiceLayer(Singleton):
         :param params: Parameters from HTTP request
         :return: "pong"
         """
+        return "\"pong\""
+
+    # noinspection PyMethodMayBeStatic
+    def ping_slow(self, params, username):
+        """
+        Always returns "pong", with a delay
+        :param params: Parameters from HTTP request
+        :return: "pong"
+        """
+        sleep(5)
         return "\"pong\""
