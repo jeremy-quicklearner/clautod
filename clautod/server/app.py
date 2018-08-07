@@ -11,6 +11,7 @@ from flask import Flask
 from flask import request
 from flask import send_from_directory
 from flask import send_file
+from flask import render_template
 from gevent.pywsgi import WSGIServer
 from werkzeug.exceptions import NotFound
 
@@ -56,6 +57,16 @@ def catch_all_path(path):
     except NotFound:
         return send_file("/usr/share/clauto/clautod/web/index.html")
 
+
+# HTTP ERRORS ##########################################################################################################
+
+@clauto_flask_app.errorhandler(400)
+@clauto_flask_app.errorhandler(404)
+
+def http_error(error):
+    if request.path.startswith("/api/"):
+        return str(error), error.code
+    return str(error), error.code
 
 # CLASSES ##############################################################################################################
 class ClautoFlaskApp(Singleton):
