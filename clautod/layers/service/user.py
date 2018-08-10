@@ -193,7 +193,7 @@ class ClautodServiceLayerUser(Singleton):
         except ValidationException as e:
             # str(e) won't print the password
             self.log.debug("Invalid parameter in login request: <%s>", str(e))
-            raise BadRequest("Invalid parameter value for <%s>" % str(e))
+            raise BadRequest("Validation failed: " + str(e))
 
         # Authenticate the user
         self.log.verbose("Authenticating login request from <%s>", given_user.username)

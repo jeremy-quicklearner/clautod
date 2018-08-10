@@ -5,6 +5,7 @@ Entry point for clautod
 # IMPORTS ##############################################################################################################
 
 # Standard Python modules
+import json
 
 # Other Python modules
 from flask import Flask
@@ -62,10 +63,10 @@ def catch_all_path(path):
 
 @clauto_flask_app.errorhandler(400)
 @clauto_flask_app.errorhandler(404)
-
+@clauto_flask_app.errorhandler(500)
 def http_error(error):
     if request.path.startswith("/api/"):
-        return str(error), error.code
+        return error.description, error.code
     return str(error), error.code
 
 # CLASSES ##############################################################################################################
