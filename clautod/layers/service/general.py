@@ -233,12 +233,12 @@ class ClautodServiceLayer(Singleton):
 
         # If this was a login, put the result (a session token) in the cookie and put "Success" in the response
         if request.path == "/api/user/login":
-            cookie = "JWT=%s; Path=/api; Secure; Max-Age=%s" % (result, int(self.config["session_lifetime"]))
+            cookie = "JWT=%s; Path=/; Secure; Max-Age=%s" % (result, int(self.config["session_lifetime"]))
             result = "\"Success\""
 
         # Otherwise, send back the existing session token (which is either None or has been renewed above)
         else:
-            cookie = "JWT=%s; Path=/api; Secure; Max-Age=%s" % (session_token, int(self.config["session_lifetime"]))
+            cookie = "JWT=%s; Path=/; Secure; Max-Age=%s" % (session_token, int(self.config["session_lifetime"]))
 
         # Prepare the response headers
         headers = {}
@@ -261,6 +261,7 @@ class ClautodServiceLayer(Singleton):
         :param params: Parameters from HTTP request
         :return: "pong"
         """
+        self.log.debug("Ping from user <%s>", username)
         return "\"pong\""
 
     # noinspection PyMethodMayBeStatic
@@ -271,4 +272,5 @@ class ClautodServiceLayer(Singleton):
         :return: "pong"
         """
         sleep(5)
+        self.log.debug("Slow ping from user <%s>", username)
         return "\"pong\""
