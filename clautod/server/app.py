@@ -96,7 +96,7 @@ class ClautoFlaskApp(Singleton):
         self.wsgi_server = WSGIServer(
             listener=("0.0.0.0", int(self.config["port"])),
             application=clauto_flask_app,
-            log=self.log.logger,  # TODO: Give Flask its own logs
+            log=None, # TODO: Give Flask its own logs
             certfile="/etc/clauto/clautod/clauto-cert.pem",
             keyfile="/etc/clauto/clautod/clauto-pkey.pem"
             )
