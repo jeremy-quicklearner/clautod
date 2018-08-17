@@ -85,6 +85,9 @@ class ClautodServiceLayer(Singleton):
             "/api/ping_slow": {
                 "GET": {"handler": self.ping_slow, "privilege": PRIVILEGE_LEVEL_PUBLIC}
             },
+            "/api/sysname": {
+                "GET": {"handler": self.sysname, "privilege": PRIVILEGE_LEVEL_READ}
+            },
             "/api/user/login": {
                 "POST": {"handler": self.user_facility.login, "privilege": PRIVILEGE_LEVEL_PUBLIC}
             },
@@ -274,3 +277,27 @@ class ClautodServiceLayer(Singleton):
         sleep(5)
         self.log.debug("Slow ping from user <%s>", username)
         return "\"pong\""
+
+    # noinspection PyMethodMayBeStatic
+    def ping_slow(self, params, username):
+        """
+        Always returns "pong", with a delay
+        :param params: Parameters from HTTP request
+        :return: "pong"
+        """
+        sleep(5)
+        self.log.debug("Slow ping from user <%s>", username)
+        return "\"pong\""
+
+    # noinspection PyMethodMayBeStatic
+    def sysname(self, params, username):
+        """
+        Returns the name of the system from the config file
+        :param params: Parameters from HTTP request
+        :return: "pong"
+        """
+        self.log.debug("System name requested by user <%s>", username)
+        if 'instance_name' not in self.config:
+            self.log.error("instance_name unconfigured in clautod.cfg")
+            return "\"Clauto\""
+        return  self.config["instance_name"]
